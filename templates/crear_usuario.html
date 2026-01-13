@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus-fill"></i> Registrar Nuevo Usuario</h4>
+            </div>
+            <div class="card-body p-4">
+                
+                <form method="POST" action="{{ url_for('crear_usuario') }}">
+                    
+                    <h5 class="mb-3 text-muted">Datos de Cuenta</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="rut" class="form-label">RUT</label>
+                            <input type="text" class="form-control" name="rut" placeholder="11.111.111-1" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="rol" class="form-label">Rol</label>
+                            <select class="form-select" name="id_rol" required>
+                                <option value="" selected disabled>Seleccione...</option>
+                                <option value="1">Administrador</option>
+                                <option value="2">Apoderado</option>
+                                <option value="3">Alumno</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="clave" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" name="clave" required>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3 text-muted">Datos Personales</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Apellido Paterno</label>
+                            <input type="text" class="form-control" name="app_paterno" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Apellido Materno</label>
+                            <input type="text" class="form-control" name="app_materno" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('usuarios') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Guardar Ficha</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

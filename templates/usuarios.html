@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0 text-primary">
+                <i class="bi bi-people-fill"></i> Gestión de Usuarios
+            </h2>
+            <button class="btn btn-success">
+                <a href="{{ url_for('crear_usuario') }}" class="btn btn-success"><i class="bi bi-person-plus-fill"></i> Nuevo Usuario</a> 
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>RUT</th>
+                        <th>Nombre Completo</th> <th>Rol Asignado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>#{{ usuario[0] }}</td>
+                        <td class="fw-bold">{{ usuario[1] }}</td> <td>
+                            {% if usuario[3] %}
+                                {{ usuario[3] }} {{ usuario[4] }} {{ usuario[5] }}
+                            {% else %}
+                                <span class="text-muted fst-italic">(Sin perfil)</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if usuario[2] == 'Administrador' %}
+                                <span class="badge bg-primary">{{ usuario[2] }}</span>
+                            {% elif usuario[2] == 'Apoderado' %}
+                                <span class="badge bg-success">{{ usuario[2] }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ usuario[2] }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="text-end">
+                            <a href="{{ url_for('editar_usuario', id_usuario=usuario[0]) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <a href="#" onclick="confirmarEliminar({{ usuario[0] }})" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <script>
+                        function confirmarEliminar(id_usuario) {
+                            if (confirm('¿Estás seguro de que quieres eliminar a este usuario?\nEsta acción no se puede deshacer.')) {
+                                // Si dice que SÍ, lo enviamos a la ruta de Python
+                                window.location.href = "/eliminar_usuario/" + id_usuario;
+                            }
+                            // Si dice que NO, no hacemos nada
+                        }
+                    </script>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <a href="/dashboard" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Panel
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

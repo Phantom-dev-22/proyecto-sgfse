@@ -2,24 +2,39 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-12 mb-4">
-        <div class="card shadow-sm border-0 bg-primary text-white">
-            <div class="card-body p-4">
-                <h2 class="display-6">¡Hola, Administrador! 👋</h2>
-                <p class="lead mb-0">RUT: {{ rut_usuario }} | ID Rol: {{ id_rol }}</p>
+    <div class="card bg-primary text-white mb-4 shadow border-0">
+        <div class="card-body p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="fw-bold mb-0">
+                    <i class="bi bi-person-workspace me-2"></i> Panel de Administración
+                </h2>
+                <p class="mb-0 text-white-50">Bienvenido al Sistema de Gestión SGFSE</p>
             </div>
+            <i class="bi bi-shield-check display-3 text-white-50"></i>
         </div>
     </div>
 
     <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm hover-effect">
+        <div class="card h-100 shadow-sm border-0 hover-effect">
             <div class="card-body text-center p-4">
                 <div class="display-4 text-primary mb-3">
                     <i class="bi bi-people-fill"></i>
                 </div>
-                <h4 class="card-title">Gestionar Usuarios</h4>
-                <p class="card-text text-muted">Crear, editar o eliminar alumnos y apoderados.</p>
-                <a href="#" class="btn btn-outline-primary stretched-link">Ir a Usuarios</a>
+                <h5 class="card-title">Gestionar Usuarios</h5>
+                
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="badge bg-primary rounded-pill">
+                        {{ total_usuarios }} Usuarios
+                    </span>
+                    <span class="badge bg-success rounded-pill">
+                        {{ total_alumnos }} Alumnos
+                    </span>
+                </div>
+
+                <p class="card-text text-muted small">
+                    Crear, editar o eliminar alumnos y apoderados.
+                </p>
+                <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-outline-primary stretched-link">Ir a Usuarios</a>
             </div>
         </div>
     </div>
@@ -32,7 +47,7 @@
                 </div>
                 <h4 class="card-title">Asistencia</h4>
                 <p class="card-text text-muted">Revisar registros de entrada y salida.</p>
-                <a href="#" class="btn btn-outline-success stretched-link">Ver Asistencia</a>
+                <a href="{{ url_for('seleccionar_asistencia') }}" class="btn btn-outline-info stretched-link">Ir a Asistencia</a>
             </div>
         </div>
     </div>

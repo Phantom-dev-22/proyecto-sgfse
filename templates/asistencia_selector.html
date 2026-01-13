@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="bi bi-calendar-check-fill"></i> Gestionar Asistencia</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">Seleccione el curso y la fecha para visualizar o tomar la asistencia.</p>
+                
+                <form action="{{ url_for('tomar_asistencia') }}" method="GET">
+                        <label class="form-label fw-bold">1. Seleccione el Curso</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-people-fill"></i></span>
+                            <select class="form-select" name="id_curso" required>
+                                <option value="" selected disabled>-- Elija un curso --</option>
+                                {% for curso in cursos %}
+                                    <option value="{{ curso[0] }}">{{ curso[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">2. Seleccione la Fecha</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+                            <input type="date" class="form-control" name="fecha" value="{{ fecha_hoy }}" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Cargar Planilla <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+             <a href="{{ url_for('dashboard') }}" class="text-decoration-none"><i class="bi bi-arrow-left"></i> Volver al Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

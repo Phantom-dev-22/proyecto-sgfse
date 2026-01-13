@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form action="{{ url_for('guardar_asistencia') }}" method="POST">
+    
+    <input type="hidden" name="id_curso" value="{{ id_curso }}">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+
+    <div class="row">
+        
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card-body text-center">
+                    
+                    <div class="mb-3 text-primary">
+                        <i class="bi bi-calendar-check fs-1"></i>
+                    </div>
+
+                    <h5 class="fw-bold mb-1">Control de Asistencia</h5>
+                    <p class="text-muted mb-4">{{ curso }}</p>
+
+                    <div class="p-3 bg-light rounded mb-4 border">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">FECHA SELECCIONADA</small>
+                        <h3 class="fw-bold mb-0 text-dark">{{ fecha_bonita }}</h3>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-dark btn-lg py-3 shadow-sm">
+                            <i class="bi bi-save me-2"></i> GUARDAR
+                        </button>
+                        
+                        <a href="{{ url_for('seleccionar_asistencia') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver atrás
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card shadow border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-secondary text-uppercase" style="font-size: 0.85rem;">
+                                <tr>
+                                    <th class="py-3 ps-4">RUT</th> <th class="py-3">Nombre Completo</th>
+                                    <th class="py-3 text-center" style="width: 180px;">Estado</th>
+                                    <th class="py-3 text-center">Entrada</th>
+                                    <th class="py-3 text-center">Salida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alumno in alumnos %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-secondary font-monospace">
+                                        {{ alumno[1] }}
+                                    </td>
+                                    
+                                    <td>
+                                        {{ alumno[3] }} {{ alumno[2] }}
+                                    </td>
+                                    
+                                    <td>
+                                        <select class="form-select form-select-sm border-0 bg-light fw-bold text-dark text-center" name="estado_{{ alumno[0] }}">
+                                            {% for est in estados %}
+                                                <option value="{{ est[0] }}" 
+                                                    {% if alumno[4] == est[0] %} selected {% endif %}>
+                                                    {{ est[1] }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm text-center border-0 bg-light" 
+                                               name="entrada_{{ alumno[0] }}" 
+                                               value="{{ alumno[5] if alumno[5] else '08:00' }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm text-center border-0 bg-light" 
+                                               name="salida_{{ alumno[0] }}" 
+                                               value="{{ alumno[6] if alumno[6] else '16:00' }}">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
