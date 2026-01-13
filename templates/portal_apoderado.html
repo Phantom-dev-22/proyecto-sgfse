@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <div class="bg-light border rounded p-3 me-3">
+                <i class="bi bi-mortarboard-fill display-6 text-primary"></i>
+            </div>
+            <div>
+                <h4 class="mb-0 fw-bold">Bienvenido/a</h4>
+                <p class="text-muted mb-0">{{ session.get('nombre', 'Apoderado') }}</p>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-warning text-white fw-bold px-4">
+            Cierre Sesión <i class="bi bi-box-arrow-right ms-2"></i>
+        </a>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <button class="btn btn-info text-white fw-bold w-100 py-3 shadow-sm d-flex align-items-center justify-content-center" 
+                    style="background-color: #17a2b8;"
+                    data-bs-toggle="modal" data-bs-target="#modalReporte">
+                <i class="bi bi-file-earmark-pdf-fill fs-4 me-2"></i>
+                SOLICITUD REPORTE
+            </button>
+        </div>
+
+        <div class="col-md-6">
+            <button class="btn btn-success fw-bold w-100 py-3 shadow-sm d-flex align-items-center justify-content-center" 
+                    style="background-color: #20c997; border: none;"
+                    data-bs-toggle="modal" data-bs-target="#modalAyuda">
+                <i class="bi bi-question-circle-fill fs-4 me-2"></i>
+                SOLICITUD AYUDA
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-light border text-center text-muted small mb-4 shadow-sm">
+        <i class="bi bi-info-circle-fill me-1 text-info"></i> 
+        Los registros mostrados y los reportes generados corresponden a la actividad de los <strong>últimos 30 días</strong>.
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card bg-white border shadow-sm h-100">
+                <div class="card-header bg-white text-center border-0 pt-3">
+                    <h5 class="fw-bold text-secondary">INGRESOS</h5>
+                    <hr class="w-25 mx-auto border-3 border-success opacity-100 my-2">
+                </div>
+                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush">
+                        {% for mov in movimientos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-bottom-0 border-top">
+                            <span class="fw-bold text-muted">{{ mov.fecha }}</span>
+                            <span class="badge bg-success rounded-pill px-3 py-2">{{ mov.entrada }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card bg-white border shadow-sm h-100">
+                <div class="card-header bg-white text-center border-0 pt-3">
+                    <h5 class="fw-bold text-secondary">SALIDAS</h5>
+                    <hr class="w-25 mx-auto border-3 border-danger opacity-100 my-2">
+                </div>
+                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush">
+                        {% for mov in movimientos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-bottom-0 border-top">
+                            <span class="fw-bold text-muted">{{ mov.fecha }}</span>
+                            {% if mov.salida == 'PENDIENTE' %}
+                                <span class="badge bg-secondary opacity-25 rounded-pill px-3 py-2">--:--</span>
+                            {% else %}
+                                <span class="badge bg-danger rounded-pill px-3 py-2">{{ mov.salida }}</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal fade" id="modalReporte" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-pdf"></i> Generar Reporte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('generar_reporte') }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Seleccione el rango de fechas para generar el certificado de asistencia.</p>
+                    
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Desde:</label>
+                            <input type="date" name="fecha_inicio" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Hasta:</label>
+                            <input type="date" name="fecha_fin" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white fw-bold">
+                        <i class="bi bi-download me-1"></i> Descargar PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAyuda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-chat-dots-fill"></i> Solicitud de Ayuda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('enviar_ayuda') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">¿En qué podemos ayudarte?</label>
+                        <textarea name="mensaje_ayuda" class="form-control" rows="4" placeholder="Describe tu problema aquí..." required></textarea>
+                    </div>
+                    <div class="alert alert-warning small py-2">
+                        <i class="bi bi-exclamation-circle"></i> El administrador recibirá este mensaje junto con tus datos de contacto.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="bi bi-send-fill me-1"></i> Enviar Solicitud
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
