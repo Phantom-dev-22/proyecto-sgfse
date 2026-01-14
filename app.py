@@ -2,6 +2,11 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for, s
 from flask_bcrypt import Bcrypt 
 from config.db import get_db_connection
 from werkzeug.security import check_password_hash, generate_password_hash
+import io
+from flask import send_file
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from datetime import datetime # ¡Para el formato de fecha!
 
 app = Flask(__name__)
 
@@ -606,15 +611,91 @@ def enviar_ayuda():
 def generar_reporte():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
-    # Recogemos las fechas del modal
-    f_inicio = request.form['fecha_inicio']
-    f_fin = request.form['fecha_fin']
+        
+    # 1. Recibimos los datos crudos del HTML (Formato: YYYY-MM-DD)
+    fecha_inicio_raw = request.form['fecha_inicio']
+    fecha_fin_raw = request.form['fecha_fin']
+    nombre_apoderado = session.get('nombre', 'Apoderado')
     
-    # (Aquí va tu código de ReportLab que genera el PDF)
-    # Si quieres probar rápido sin PDF real, usa esto temporalmente:
-    flash(f'Generando reporte desde {f_inicio} hasta {f_fin}... (Simulado)', 'info')
-    return redirect(url_for('portal_apoderado'))   
+    # --- FORMATEO DE FECHA (DD/MM/YYYY) ---
+    # Convertimos de Texto Crudo -> Objeto Fecha -> Texto Bonito
+    try:
+        obj_inicio = datetime.strptime(fecha_inicio_raw, '%Y-%m-%d')
+        fecha_inicio_fmt = obj_inicio.strftime('%d/%m/%Y') # Ej: 13/01/2026
+        
+        obj_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d')
+        fecha_fin_fmt = obj_fin.strftime('%d/%m/%Y')
+    except ValueError:
+        # Por si algo falla, usamos la original
+        fecha_inicio_fmt = fecha_inicio_raw
+        fecha_fin_fmt = fecha_fin_raw
+
+    # 2. Creamos el archivo en memoria (Buffer)
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    # --- DIBUJANDO EL PDF ---
+    p.setTitle(f"Reporte_Asistencia_{fecha_inicio_raw}")
+    
+    # Encabezado Institucional
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(50, 750, "SGFSE")
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 735, "Sistema de Gestión de Flujo y Seguridad Escolar")
+    
+    p.line(50, 725, 550, 725) # Línea separadora
+    
+    # Datos del Reporte
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(50, 700, "INFORMACIÓN DEL REPORTE:")
+    
+    p.setFont("Helvetica", 10)
+    p.drawString(50, 685, f"Solicitante: {nombre_apoderado}")
+    
+    # AQUÍ USAMOS LA FECHA FORMATEADA (DD/MM/YYYY)
+    p.drawString(50, 670, f"Periodo: {fecha_inicio_fmt} al {fecha_fin_fmt}")
+    
+    # (En el futuro aquí pondrás el nombre real del alumno desde la BD)
+    p.drawString(50, 655, "Alumno: Julieta Soto (2° Básico A)")
+    
+    # Título de la Tabla
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, 620, "Detalle de Asistencia:")
+    
+    # --- CUERPO DE DATOS (TABLA) ---
+    y_position = 590
+    p.setFont("Courier", 10) # Usamos Courier para que se alinee mejor tipo tabla
+    
+    # Cabecera de la tabla
+    p.drawString(50, y_position, "FECHA       | ENTRADA   | SALIDA")
+    p.drawString(50, y_position - 5, "---------------------------------------")
+    y_position -= 20
+    
+    # DATOS SIMULADOS (Para que coincidan con tu imagen)
+    # Nota: Aquí más adelante haremos la consulta SQL real a la tabla "Asistencia"
+    datos_simulados = [
+        ("13/01/2026", "07:58 AM", "PENDIENTE"),
+        ("12/01/2026", "08:05 AM", "16:15 PM"),
+        ("11/01/2026", "08:00 AM", "16:00 PM"),
+        ("10/01/2026", "07:55 AM", "15:50 PM"),
+        ("09/01/2026", "08:10 AM", "16:05 PM"),
+    ]
+    
+    for fecha, ent, sal in datos_simulados:
+        texto_fila = f"{fecha}  | {ent}  | {sal}"
+        p.drawString(50, y_position, texto_fila)
+        y_position -= 15 # Bajamos 15 pixeles por cada fila
+    
+    # Pie de página
+    p.setFont("Helvetica-Oblique", 8)
+    p.drawString(50, 50, "Documento generado automáticamente por SGFSE. Válido para fines informativos.")
+    
+    # 3. Guardar y Enviar
+    p.showPage()
+    p.save()
+    
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"Reporte_{fecha_inicio_raw}.pdf", mimetype='application/pdf')   
 
 
 
