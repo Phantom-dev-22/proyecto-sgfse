@@ -80,14 +80,19 @@ def login():
             session['user_name'] = user[1]
             session['id_rol'] = user[3] # Guardamos el Rol (1, 2 o 3)
             
-            # --- SEMÁFORO DE SEGURIDAD ---
+            # --- SEMÁFORO DE SEGURIDAD (ACTUALIZADO) ---
             if session['id_rol'] == 1:
-                # Si es Admin (1) -> Pasa al Dashboard
+                # Si es Admin (1) -> Va al Dashboard Azul
                 return redirect(url_for('dashboard'))
+            
+            elif session['id_rol'] == 2:
+                # ¡NUEVO! Si es Apoderado (2) -> Va a su Portal Verde
+                return redirect(url_for('portal_apoderado'))
+                
             else:
-                # Si es Alumno (3) o Apoderado (2) -> Lo sacamos
+                # Si es Alumno (3) -> Sigue en construcción
                 session.clear()
-                flash('Login correcto. Tu portal de Alumno/Apoderado está en construcción.', 'info')
+                flash('Tu portal de Alumno está en construcción.', 'info')
                 return redirect(url_for('login'))
             
         else:
@@ -558,6 +563,52 @@ def gestion_usuarios():
     return render_template('gestion_usuarios.html')
 
 
+# --- RUTA: PORTAL APODERADO ---
+@app.route('/portal_apoderado')
+def portal_apoderado():
+    # 1. Seguridad básica
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # 2. Datos simulados (Esto alimenta la tabla de Entradas/Salidas del HTML)
+    # En el futuro, esto vendrá de una consulta SQL a la tabla "Asistencia"
+    datos_movimientos = [
+        {"fecha": "13/01/2026", "entrada": "07:58 AM", "salida": "PENDIENTE"},
+        {"fecha": "12/01/2026", "entrada": "08:05 AM", "salida": "16:15 PM"},
+        {"fecha": "11/01/2026", "entrada": "08:00 AM", "salida": "16:00 PM"},
+    ]
+
+    # 3. Renderizamos tu archivo HTML
+    return render_template('portal_apoderado.html', movimientos=datos_movimientos)
+
+# --- RUTA: RECIBIR AYUDA (Botón Verde) ---
+@app.route('/enviar_ayuda', methods=['POST'])
+def enviar_ayuda():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    mensaje = request.form['mensaje_ayuda']
+    # Aquí iría el INSERT a la base de datos "Solicitud_Ayuda"
+    # Por ahora solo simulamos que funciona:
+    
+    flash('✅ Tu solicitud de ayuda ha sido enviada correctamente.', 'success')
+    return redirect(url_for('portal_apoderado'))
+
+
+ # --- RUTA: GENERAR PDF (Botón Azul) ---
+@app.route('/generar_reporte', methods=['POST'])
+def generar_reporte():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # Recogemos las fechas del modal
+    f_inicio = request.form['fecha_inicio']
+    f_fin = request.form['fecha_fin']
+    
+    # (Aquí va tu código de ReportLab que genera el PDF)
+    # Si quieres probar rápido sin PDF real, usa esto temporalmente:
+    flash(f'Generando reporte desde {f_inicio} hasta {f_fin}... (Simulado)', 'info')
+    return redirect(url_for('portal_apoderado'))   
 
 
 
