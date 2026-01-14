@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from datetime import datetime # ¡Para el formato de fecha!
 import math
+from datetime import date
 
 app = Flask(__name__)
 
@@ -528,64 +529,92 @@ def seleccionar_asistencia():
 
     return render_template('asistencia_selector.html', cursos=cursos, fecha_hoy=hoy)
 
-# --- RUTA: MOSTRAR LA PLANILLA (PASO 2) ---
-@app.route('/tomar_asistencia', methods=['GET'])
-def tomar_asistencia():
-    if 'user_id' not in session or session.get('id_rol') != 1:
+# --- RUTA UNIFICADA: CONTROL DE ASISTENCIA (CORREGIDA id_estado) ---
+@app.route('/asistencia', methods=['GET', 'POST'])
+def asistencia():
+    if 'user_id' not in session:
         return redirect(url_for('login'))
-
-    # Recibimos los datos del selector
-    id_curso = request.args.get('id_curso')
-    fecha = request.args.get('fecha')
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # 1. Obtener nombre del curso (para el título)
-    cur.execute('SELECT nombre_curso FROM "Cursos" WHERE id_curso = %s', (id_curso,))
-    datos_curso = cur.fetchone()
-    nombre_curso = datos_curso[0] if datos_curso else "Curso Desconocido"
+    # 1. Listas para selectores
+    cur.execute('SELECT * FROM "Cursos"')
+    cursos = cur.fetchall()
 
-    # 2. TRAER ALUMNOS + SU ASISTENCIA (Si existe)
-    # Esta es la consulta "inteligente" (LEFT JOIN)
-    query = """
-        SELECT 
-            A.id_alumno, 
-            U.rut, 
-            P.nombre, 
-            P.apellido_paterno,
-            Asis.id_estado,     -- Si ya se tomó, vendrá el estado (1, 2, etc.)
-            Asis.hora_entrada,  -- Si ya se tomó, vendrá la hora
-            Asis.hora_salida    -- Si ya se tomó, vendrá la hora
-        FROM "Alumnos" A
-        JOIN "Perfiles" P ON A.id_perfil = P.id_perfil
-        JOIN "Usuarios" U ON P.id_usuario = U.id_usuario
-        LEFT JOIN "Asistencia" Asis ON A.id_alumno = Asis.id_alumno AND Asis.fecha = %s
-        WHERE A.id_curso = %s
-        ORDER BY P.apellido_paterno ASC
-    """
-    cur.execute(query, (fecha, id_curso))
-    lista_alumnos = cur.fetchall()
+    # 2. Capturar Filtros
+    curso_seleccionado = request.args.get('curso_id', type=int)
+    fecha_seleccionada = request.args.get('fecha', str(date.today())) 
+    
+    alumnos = []
 
-    # 3. Traer los estados posibles (Presente, Ausente...) para el menú desplegable
-    cur.execute('SELECT id_estado, nombre_estado FROM "Estados_Asistencia" ORDER BY id_estado ASC')
-    lista_estados = cur.fetchall()
+    # 3. GUARDADO (POST)
+    if request.method == 'POST':
+        try:
+            curso_form = request.form.get('curso_id_hidden')
+            fecha_form = request.form.get('fecha_hidden')
+            
+            for key, value in request.form.items():
+                if key.startswith('estado_'):
+                    id_alumno = key.split('_')[1]
+                    id_estado = int(value) # Convertimos a número (1, 2, 3...)
+                    
+                    # Verificamos si existe registro
+                    cur.execute("""
+                        SELECT 1 FROM "Asistencia" 
+                        WHERE id_alumno = %s AND fecha = %s
+                    """, (id_alumno, fecha_form))
+                    
+                    if cur.fetchone():
+                        # ACTUALIZAR: Usamos la columna id_estado
+                        cur.execute("""
+                            UPDATE "Asistencia" SET id_estado = %s 
+                            WHERE id_alumno = %s AND fecha = %s
+                        """, (id_estado, id_alumno, fecha_form))
+                    else:
+                        # INSERTAR: Usamos la columna id_estado
+                        cur.execute("""
+                            INSERT INTO "Asistencia" (id_alumno, fecha, id_estado)
+                            VALUES (%s, %s, %s)
+                        """, (id_alumno, fecha_form, id_estado))
+            
+            conn.commit()
+            flash('✅ Asistencia guardada correctamente.', 'success')
+            return redirect(url_for('asistencia', curso_id=curso_form, fecha=fecha_form))
+
+        except Exception as e:
+            conn.rollback()
+            flash(f'❌ Error al guardar: {e}', 'danger')
+
+   # 4. VISUALIZACIÓN (GET)
+    if curso_seleccionado:
+        # CORRECCIÓN: Hacemos JOIN con "Usuarios" (u) para sacar el RUT real
+        query = """
+            SELECT 
+                a.id_alumno,
+                u.rut,  -- <--- Ahora sacamos el RUT de la tabla Usuarios
+                p.nombre,
+                p.apellido_paterno,
+                p.apellido_materno,
+                COALESCE(asi.id_estado, 1) as id_estado_actual 
+            FROM "Alumnos" a
+            JOIN "Perfiles" p ON a.id_perfil = p.id_perfil
+            JOIN "Usuarios" u ON p.id_usuario = u.id_usuario -- Nuevo JOIN vital
+            LEFT JOIN "Asistencia" asi ON a.id_alumno = asi.id_alumno AND asi.fecha = %s
+            WHERE a.id_curso = %s
+            ORDER BY p.apellido_paterno ASC
+        """
+        cur.execute(query, (fecha_seleccionada, curso_seleccionado))
+        alumnos = cur.fetchall()
 
     cur.close()
     conn.close()
 
-# TRANSFORMACIÓN DE FECHA
-    from datetime import datetime
-    fecha_dt = datetime.strptime(fecha, '%Y-%m-%d') # Convertimos texto a Objeto Fecha
-    fecha_bonita = fecha_dt.strftime('%d-%m-%Y')    # Convertimos Objeto a Texto "12-01-2026"
-
-    return render_template('tomar_asistencia.html', 
-                           alumnos=lista_alumnos, 
-                           estados=lista_estados, 
-                           curso=nombre_curso, 
-                           fecha=fecha,
-                           fecha_bonita=fecha_bonita,
-                           id_curso=id_curso)
+    return render_template('asistencia.html', 
+                           cursos=cursos, 
+                           alumnos=alumnos,
+                           curso_act=curso_seleccionado,
+                           fecha_act=fecha_seleccionada)
 
 # --- RUTA: GUARDAR LOS DATOS (PASO 3) ---
 @app.route('/guardar_asistencia', methods=['POST'])
