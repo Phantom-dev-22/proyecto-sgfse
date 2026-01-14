@@ -21,24 +21,26 @@
                         <i class="bi bi-people-fill fs-4"></i> Apoderado
                     </button>
                 </div>
-                </div>
+            </div>
 
             <div id="seccion-login" style="display: none;">
                 <div id="encabezado-login" class="card text-white mb-4 p-3 shadow-sm" style="margin-top: -2rem; margin-left: -2rem; margin-right: -2rem; border-radius: 0.5rem 0.5rem 0 0;">
                     <h4 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill me-2"></i> Acceso <span id="titulo-rol">Usuario</span></h4>
                 </div>
 
-                <form action="{{ url_for('login') }}" method="POST">
+                <form action="{{ url_for('login') }}" method="POST" class="needs-validation" novalidate>
                     <input type="hidden" id="rol_entrada" name="rol_entrada" value="">
 
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold text-secondary">RUT de Usuario</label>
                         <input type="text" name="rut" class="form-control form-control-lg" placeholder="Ej: 12.345.678-9" required>
+                        <div class="invalid-feedback">Por favor, ingresa tu RUT.</div>
                     </div>
 
                     <div class="mb-4 text-start">
                         <label class="form-label fw-bold text-secondary">Contraseña</label>
                         <input type="password" name="clave" class="form-control form-control-lg" placeholder="••••••••" required>
+                        <div class="invalid-feedback">La contraseña es obligatoria.</div>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -53,7 +55,7 @@
 </div>
 
 <script>
-    // Ahora la función recibe un tercer dato: el id_rol esperado
+    // Función para mostrar el formulario correcto
     function mostrarLogin(rol, claseColor, idRol) {
         document.getElementById('seccion-seleccion').style.display = 'none';
         
@@ -61,15 +63,26 @@
         const header = document.getElementById('encabezado-login');
         header.className = `card text-white mb-4 p-3 shadow-sm ${claseColor}`;
         
-        // AQUÍ ESTÁ LA MAGIA: Guardamos el ID (1 o 2) en el formulario
+        // Guardamos el ID (1 o 2) en el formulario oculto
         document.getElementById('rol_entrada').value = idRol;
 
         document.getElementById('seccion-login').style.display = 'block';
     }
 
+    // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE ---
     function volverSeleccion() {
+        // 1. Ocultar login y mostrar selección
         document.getElementById('seccion-login').style.display = 'none';
         document.getElementById('seccion-seleccion').style.display = 'block';
+
+        // 2. Buscar el formulario
+        const form = document.querySelector('.needs-validation');
+
+        // 3. LIMPIEZA PROFUNDA:
+        if (form) {
+            form.reset(); // Borra lo que escribiste (RUT y clave)
+            form.classList.remove('was-validated'); // Quita los bordes rojos y mensajes
+        }
     }
 </script>
 {% endblock %}
