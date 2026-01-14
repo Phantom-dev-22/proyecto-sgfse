@@ -9,27 +9,31 @@
             </div>
             <div class="card-body p-4">
                 
-                <form method="POST">
+                <form method="POST" class="needs-validation" novalidate>
                     
                     <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-fill"></i> Datos del Alumno</h5>
                     <div class="row mb-4">
                         <div class="col-md-4">
                             <label class="form-label">RUT Alumno</label>
                             <input type="text" class="form-control" name="rut_alumno" placeholder="11.111.111-1" required>
+                            <div class="invalid-feedback">El RUT del alumno es obligatorio.</div>
                         </div>
                         <div class="col-md-8">
                             <div class="row">
                                 <div class="col-md-4">
                                     <label class="form-label">Nombres</label>
                                     <input type="text" class="form-control" name="nombre_alumno" required>
+                                    <div class="invalid-feedback">Ingresa los nombres.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Ap. Paterno</label>
                                     <input type="text" class="form-control" name="app_p_alumno" required>
+                                    <div class="invalid-feedback">Campo requerido.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Ap. Materno</label>
                                     <input type="text" class="form-control" name="app_m_alumno" required>
+                                    <div class="invalid-feedback">Campo requerido.</div>
                                 </div>
                             </div>
                         </div>
@@ -44,10 +48,12 @@
                                     <option value="{{ curso[0] }}">{{ curso[1] }}</option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback">Debes asignar un curso.</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Fecha Nac.</label>
                             <input type="date" class="form-control" name="fecha_nac" required>
+                            <div class="invalid-feedback">Fecha requerida.</div>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Sexo</label>
@@ -55,10 +61,12 @@
                                 <option value="M">Masculino</option>
                                 <option value="F">Femenino</option>
                             </select>
+                            <div class="invalid-feedback">Selecciona una opción.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Dirección</label>
                             <input type="text" class="form-control" name="direccion" required>
+                            <div class="invalid-feedback">Ingresa la dirección.</div>
                         </div>
                     </div>
 
@@ -71,20 +79,24 @@
                         <div class="col-md-4">
                             <label class="form-label">RUT Apoderado</label>
                             <input type="text" class="form-control" name="rut_apo" placeholder="9.999.999-9" required>
+                            <div class="invalid-feedback">El RUT del apoderado es obligatorio.</div>
                         </div>
                         <div class="col-md-8">
                             <div class="row">
                                 <div class="col-md-4">
                                     <label class="form-label">Nombres</label>
                                     <input type="text" class="form-control" name="nombre_apo" required>
+                                    <div class="invalid-feedback">Ingresa los nombres.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Ap. Paterno</label>
                                     <input type="text" class="form-control" name="app_p_apo" required>
+                                    <div class="invalid-feedback">Campo requerido.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Ap. Materno</label>
                                     <input type="text" class="form-control" name="app_m_apo" required>
+                                    <div class="invalid-feedback">Campo requerido.</div>
                                 </div>
                             </div>
                         </div>
@@ -94,20 +106,23 @@
                         <div class="col-md-4">
                             <label class="form-label">Parentesco</label>
                             <select class="form-select" name="parentesco" required>
-                                <option value="Madre">Madre</option>
+                                <option value="" selected disabled>Seleccione...</option> <option value="Madre">Madre</option>
                                 <option value="Padre">Padre</option>
                                 <option value="Abuelo/a">Abuelo/a</option>
                                 <option value="Tio/a">Tío/a</option>
                                 <option value="Otro">Otro</option>
                             </select>
+                            <div class="invalid-feedback">Indique el parentesco.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Teléfono</label>
                             <input type="text" class="form-control" name="telefono_apo" placeholder="+569..." required>
+                            <div class="invalid-feedback">Teléfono de contacto requerido.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Correo (Contacto)</label>
                             <input type="email" class="form-control" name="email_apo" required>
+                            <div class="invalid-feedback">Ingrese un correo válido.</div>
                         </div>
                     </div>
 
