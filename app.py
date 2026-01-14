@@ -592,19 +592,6 @@ def portal_apoderado():
     # 3. Renderizamos tu archivo HTML
     return render_template('portal_apoderado.html', movimientos=datos_movimientos)
 
-# --- RUTA: RECIBIR AYUDA (Botón Verde) ---
-@app.route('/enviar_ayuda', methods=['POST'])
-def enviar_ayuda():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
-    mensaje = request.form['mensaje_ayuda']
-    # Aquí iría el INSERT a la base de datos "Solicitud_Ayuda"
-    # Por ahora solo simulamos que funciona:
-    
-    flash('✅ Tu solicitud de ayuda ha sido enviada correctamente.', 'success')
-    return redirect(url_for('portal_apoderado'))
-
 
  # --- RUTA: GENERAR PDF (Botón Azul) ---
 @app.route('/generar_reporte', methods=['POST'])
@@ -697,7 +684,35 @@ def generar_reporte():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"Reporte_{fecha_inicio_raw}.pdf", mimetype='application/pdf')   
 
-
+# --- RUTA: ENVIAR AYUDA (SOLO UNA VEZ) ---
+@app.route('/enviar_ayuda', methods=['POST'])
+def enviar_ayuda():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    mensaje = request.form['mensaje_ayuda']
+    id_usuario = session['user_id']
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Asegúrate de que la tabla "Solicitud_Ayuda" exista en tu BD
+        query = 'INSERT INTO "Solicitud_Ayuda" (id_usuario_apo, mensaje) VALUES (%s, %s)'
+        cur.execute(query, (id_usuario, mensaje))
+        conn.commit()
+        flash('✅ Tu mensaje ha sido enviado correctamente.', 'success')
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Error BD: {e}")
+        flash('❌ Error al enviar el mensaje.', 'danger')
+        
+    finally:
+        cur.close()
+        conn.close()
+    
+    return redirect(url_for('portal_apoderado'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
