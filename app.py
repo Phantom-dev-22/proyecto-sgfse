@@ -12,6 +12,13 @@ bcrypt = Bcrypt(app) # Inicializar encriptador
 # --- RUTA DE INICIO ---
 @app.route('/')
 def home():
+    # Si ya está logueado, lo mandamos a su panel correspondiente
+    if 'user_id' in session:
+        if session.get('id_rol') == 1:
+            return redirect(url_for('dashboard'))
+        elif session.get('id_rol') == 2:
+            return redirect(url_for('portal_apoderado'))
+            
     return render_template('home.html')
 
 # --- RUTA DEL PANEL DE CONTROL (DASHBOARD) ---

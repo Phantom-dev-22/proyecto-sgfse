@@ -1,28 +1,86 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center text-center mt-5">
-    <div class="col-md-8">
-        <div class="card shadow-lg p-5">
-            <h1 class="display-4 text-primary mb-3">Bienvenido al SGFSE</h1>
-            <p class="lead text-muted">Sistema de Gestión de Flujo y Seguridad Escolar</p>
-            <hr class="my-4">
-            <p>Seleccione su perfil para ingresar:</p>
-            
-            <div class="d-grid gap-3 d-sm-flex justify-content-center">
-                <a href="/login" class="btn btn-primary btn-lg px-4 gap-3">
-                    <i class="bi bi-person-badge"></i> Administrador
-                </a>
-                <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4 py-3 shadow-sm d-flex flex-column align-items-center bg-white" style="min-width: 160px;">
-                    <i class="bi bi-people fs-3 mb-2"></i>
-                    <span>Apoderado</span>
-                </a>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 450px;">
+        <div class="card-body p-5 text-center">
+
+            <div id="seccion-seleccion">
+                <h2 class="text-primary fw-bold mb-3">Bienvenido al SGFSE</h2>
+                <p class="text-muted mb-4">Sistema de Gestión de Flujo y Seguridad Escolar</p>
+                <hr class="mb-4">
+                
+                <p class="mb-3 fw-bold">Seleccione su perfil para ingresar:</p>
+
+                <div class="d-grid gap-3">
+                    <button onclick="mostrarLogin('Administrador', 'bg-primary')" class="btn btn-outline-primary btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                        <i class="bi bi-person-badge-fill fs-4"></i>
+                        Administrador
+                    </button>
+
+                    <button onclick="mostrarLogin('Apoderado', 'bg-success')" class="btn btn-outline-success btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                        <i class="bi bi-people-fill fs-4"></i>
+                        Apoderado
+                    </button>
+                </div>
+
+                <div class="mt-4">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2">
+                        <i class="bi bi-check-circle-fill me-1"></i> Sistema Operativo
+                    </span>
+                </div>
             </div>
-            
-            <div class="alert alert-success mt-4" role="alert">
-                <i class="bi bi-check-circle-fill"></i> Sistema Operativo y Conectado
+
+            <div id="seccion-login" style="display: none;">
+                <div id="encabezado-login" class="card text-white mb-4 p-3 shadow-sm" style="margin-top: -2rem; margin-left: -2rem; margin-right: -2rem; border-radius: 0.5rem 0.5rem 0 0;">
+                    <h4 class="mb-0 fw-bold">
+                        <i class="bi bi-shield-lock-fill me-2"></i> Acceso <span id="titulo-rol">Usuario</span>
+                    </h4>
+                </div>
+
+                <form action="{{ url_for('login') }}" method="POST">
+                    <div class="mb-3 text-start">
+                        <label class="form-label fw-bold text-secondary">RUT de Usuario</label>
+                        <input type="text" name="rut" class="form-control form-control-lg" placeholder="Ej: 12345678-9" required autofocus>
+                    </div>
+
+                    <div class="mb-4 text-start">
+                        <label class="form-label fw-bold text-secondary">Contraseña</label>
+                        <input type="password" name="clave" class="form-control form-control-lg" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">Ingresar</button>
+                        <button type="button" onclick="volverSeleccion()" class="btn btn-light btn-lg border text-muted">Volver al Inicio</button>
+                    </div>
+                </form>
             </div>
+
         </div>
     </div>
 </div>
+
+<script>
+    function mostrarLogin(rol, claseColor) {
+        // 1. Ocultamos la selección
+        document.getElementById('seccion-seleccion').style.display = 'none';
+        
+        // 2. Preparamos el Login visualmente
+        document.getElementById('titulo-rol').textContent = rol; // Cambia el texto a "Administrador" o "Apoderado"
+        
+        // Cambiamos el color del encabezado (Azul o Verde)
+        const header = document.getElementById('encabezado-login');
+        header.className = `card text-white mb-4 p-3 shadow-sm ${claseColor}`;
+        
+        // 3. Mostramos el Login
+        document.getElementById('seccion-login').style.display = 'block';
+    }
+
+    function volverSeleccion() {
+        // Inverso: Ocultar login, mostrar selección
+        document.getElementById('seccion-login').style.display = 'none';
+        document.getElementById('seccion-seleccion').style.display = 'block';
+    }
+</script>
 {% endblock %}
