@@ -28,31 +28,38 @@ def home():
 
 # --- RUTA DEL PANEL DE CONTROL (DASHBOARD) ---
 # Aquí solo entran los que iniciaron sesión
+# --- RUTA DASHBOARD (MODIFICADA PARA LEER MENSAJES) ---
 @app.route('/dashboard')
 def dashboard():
-    # 1. ¿Está logueado?
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # 2. ¿Es Administrador? (Doble chequeo de seguridad)
-    if session.get('id_rol') != 1:
-        flash('Acceso denegado: No tienes permisos de Administrador.', 'danger')
+    # 1. Seguridad
+    if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
 
-    # ... (Aquí sigue el resto de tu código de contadores que hicimos recién) ...
     conn = get_db_connection()
     cur = conn.cursor()
-    
-    cur.execute('SELECT COUNT(*) FROM "Usuarios"')
-    total_usuarios = cur.fetchone()[0]
-    
-    cur.execute('SELECT COUNT(*) FROM "Alumnos"')
-    total_alumnos = cur.fetchone()[0]
-    
-    cur.close()
-    conn.close()
-    
-    return render_template('dashboard.html', total_usuarios=total_usuarios, total_alumnos=total_alumnos)
+
+    # 2. Contadores (Tus tarjetas de arriba)
+    cur.execute('SELECT COUNT(*) FROM "Usuarios"'); total_usuarios = cur.fetchone()[0]
+    cur.execute('SELECT COUNT(*) FROM "Alumnos"'); total_alumnos = cur.fetchone()[0]
+
+    # 3. CONSULTA DE MENSAJES (¡Esto es lo nuevo!)
+    # Traemos el nombre del apoderado, el mensaje y la fecha
+    query_mensajes = """
+        SELECT p.nombre, p.apellido_paterno, s.mensaje, s.fecha_creacion 
+        FROM "Solicitud_Ayuda" s
+        JOIN "Perfiles" p ON s.id_usuario_apo = p.id_usuario
+        ORDER BY s.fecha_creacion DESC LIMIT 5
+    """
+    cur.execute(query_mensajes)
+    lista_mensajes = cur.fetchall()
+
+    cur.close(); conn.close()
+
+    # 4. Enviamos todo al HTML
+    return render_template('dashboard.html', 
+                           total_usuarios=total_usuarios, 
+                           total_alumnos=total_alumnos, 
+                           mensajes=lista_mensajes) # <--- Importante: enviamos la lista
   
 
 # --- RUTA DE LOGIN (LA LÓGICA REAL) ---
