@@ -253,124 +253,158 @@ def crear_usuario():
 
     return render_template('crear_usuario.html')
 
-# --- RUTA PARA ELIMINAR USUARIO ---
-@app.route('/eliminar_usuario/<int:id_usuario>')
+# --- RUTA: ELIMINAR USUARIO (CORREGIDA V2) ---
+@app.route('/eliminar_usuario/<int:id_usuario>', methods=['POST'])
 def eliminar_usuario(id_usuario):
-    if 'user_id' not in session:
+    # 1. Seguridad: Solo admin puede borrar
+    if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
     
-    # Protección: No dejar que el admin se borre a sí mismo
+    # Protección: No te puedes borrar a ti mismo
     if id_usuario == session['user_id']:
-        flash('¡No puedes eliminar tu propia cuenta mientras estás conectado!', 'danger')
+        flash('⛔ No puedes eliminar tu propia cuenta mientras estás conectado.', 'danger')
         return redirect(url_for('usuarios'))
 
     conn = get_db_connection()
     cur = conn.cursor()
+    
     try:
-        # 1. Borramos primero el Perfil asociado (si existe)
-        cur.execute('DELETE FROM "Perfiles" WHERE id_usuario = %s', (id_usuario,))
+        # 2. Averiguar qué Rol tiene
+        cur.execute('SELECT id_rol FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
+        dato_rol = cur.fetchone()
         
-        # 2. Ahora sí borramos el Usuario
-        cur.execute('DELETE FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
+        if dato_rol:
+            rol = dato_rol[0]
+            
+            # --- LIMPIEZA SI ES ALUMNO (Rol 3) ---
+            if rol == 3:
+                # CORRECCIÓN: Buscamos el ID Alumno a través de la tabla Perfiles
+                query_buscar_alumno = """
+                    SELECT a.id_alumno 
+                    FROM "Alumnos" a
+                    JOIN "Perfiles" p ON a.id_perfil = p.id_perfil
+                    WHERE p.id_usuario = %s
+                """
+                cur.execute(query_buscar_alumno, (id_usuario,))
+                alumno = cur.fetchone()
+                
+                if alumno:
+                    id_alum_int = alumno[0]
+                    # 1. Borrar su Asistencia
+                    cur.execute('DELETE FROM "Asistencia" WHERE id_alumno = %s', (id_alum_int,))
+                    # 2. Borrar su relación con Apoderados
+                    cur.execute('DELETE FROM "Relacion_Apoderado" WHERE id_alumno = %s', (id_alum_int,))
+                    # 3. Borrar de la tabla Alumnos
+                    cur.execute('DELETE FROM "Alumnos" WHERE id_alumno = %s', (id_alum_int,))
+
+            # --- LIMPIEZA SI ES APODERADO (Rol 2) ---
+            elif rol == 2:
+                # 1. Borrar sus Solicitudes de Ayuda
+                cur.execute('DELETE FROM "Solicitud_Ayuda" WHERE id_usuario_apo = %s', (id_usuario,))
+                # 2. Borrar su relación con Alumnos
+                cur.execute('DELETE FROM "Relacion_Apoderado" WHERE id_usuario = %s', (id_usuario,))
+
+            # --- LIMPIEZA FINAL (PARA TODOS) ---
+            # Borrar Perfil y Usuario
+            cur.execute('DELETE FROM "Perfiles" WHERE id_usuario = %s', (id_usuario,))
+            cur.execute('DELETE FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
+            
+            conn.commit()
+            flash('✅ Usuario eliminado correctamente.', 'success')
         
-        conn.commit()
-        flash('Usuario eliminado correctamente.', 'success')
     except Exception as e:
         conn.rollback()
-        # Este mensaje saldrá si intentas borrar a un alumno que ya tiene notas o asistencia
-        # (La base de datos protege la integridad de los datos)
-        flash(f'No se pudo eliminar: El usuario tiene datos relacionados (Asistencia/Cursos).', 'danger')
+        print(f"Error detallado al eliminar: {e}") # Mira la consola negra si vuelve a fallar
+        flash('❌ Error al eliminar el usuario.', 'danger')
+        
     finally:
         cur.close()
         conn.close()
         
     return redirect(url_for('usuarios'))
 
-# --- RUTA PARA EDITAR USUARIO (VERSIÓN CORREGIDA) ---
+# --- RUTA: EDITAR USUARIO (CORREGIDA CON NOMBRE REAL DE COLUMNA) ---
 @app.route('/editar_usuario/<int:id_usuario>', methods=['GET', 'POST'])
 def editar_usuario(id_usuario):
-    if 'user_id' not in session:
+    if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
-
-    # BLOQUE 1: PROCESAR EL GUARDADO (POST)
-    if request.method == 'POST':
-        rut = request.form['rut']
-        id_rol = request.form['id_rol']
-        nombre = request.form['nombre']
-        app_paterno = request.form['app_paterno']
-        app_materno = request.form['app_materno']
-        nueva_clave = request.form['clave']
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        try:
-            # 1. Actualizar Tabla USUARIOS (Credenciales)
-            if nueva_clave:
-                clave_hash = generate_password_hash(nueva_clave)
-                cur.execute("""
-                    UPDATE "Usuarios"
-                    SET rut = %s, id_rol = %s, password_hash = %s
-                    WHERE id_usuario = %s
-                """, (rut, id_rol, clave_hash, id_usuario))
-            else:
-                cur.execute("""
-                    UPDATE "Usuarios"
-                    SET rut = %s, id_rol = %s
-                    WHERE id_usuario = %s
-                """, (rut, id_rol, id_usuario))
-
-            # 2. Lógica Inteligente para Perfiles (Upsert)
-            cur.execute('SELECT 1 FROM "Perfiles" WHERE id_usuario = %s', (id_usuario,))
-            existe_perfil = cur.fetchone()
-
-            if existe_perfil:
-                # Si existe, actualizamos
-                cur.execute("""
-                    UPDATE "Perfiles"
-                    SET nombre = %s, apellido_paterno = %s, apellido_materno = %s
-                    WHERE id_usuario = %s
-                """, (nombre, app_paterno, app_materno, id_usuario))
-            else:
-                # Si no existe (usuarios antiguos), creamos
-                cur.execute("""
-                    INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno)
-                    VALUES (%s, %s, %s, %s)
-                """, (id_usuario, nombre, app_paterno, app_materno))
-
-            conn.commit()
-            flash('Usuario actualizado correctamente.', 'success')
-            return redirect(url_for('usuarios'))
-
-        except Exception as e:
-            conn.rollback()
-            flash(f'Error al actualizar: {e}', 'danger')
-            return redirect(url_for('usuarios')) # En caso de error, volvemos a la lista
-        
-        finally:
-            cur.close()
-            conn.close()
-
-    # BLOQUE 2: MOSTRAR EL FORMULARIO (GET)
-    # Solo llegamos aquí si NO es un POST (es decir, cuando entras a ver la página)
+    
     conn = get_db_connection()
     cur = conn.cursor()
-    
-    cur.execute("""
-        SELECT u.rut, u.id_rol, p.nombre, p.apellido_paterno, p.apellido_materno
-        FROM "Usuarios" u
-        LEFT JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
-        WHERE u.id_usuario = %s
-    """, (id_usuario,))
-    usuario_data = cur.fetchone()
-    
-    cur.close()
-    conn.close()
 
-    if usuario_data:
-        return render_template('editar_usuario.html', usuario=usuario_data, id_usuario=id_usuario)
-    else:
-        return redirect(url_for('usuarios'))
+    if request.method == 'POST':
+        # 1. Datos Generales
+        nombre = request.form['nombre']
+        app_pat = request.form['apellido_paterno']
+        app_mat = request.form['apellido_materno']
+        rut = request.form['rut']
+        id_rol = int(request.form['rol'])
+        password = request.form['password']
+        
+        # Datos del Formulario
+        correo_input = request.form.get('correo', '')   # Lo que viene del HTML
+        telefono_input = request.form.get('telefono', '') # Lo que viene del HTML
+
+        try:
+            # A. Actualizar Perfil
+            cur.execute("""
+                UPDATE "Perfiles" 
+                SET nombre = %s, apellido_paterno = %s, apellido_materno = %s
+                WHERE id_usuario = %s
+            """, (nombre, app_pat, app_mat, id_usuario))
+
+            # B. Actualizar Usuario
+            cur.execute('UPDATE "Usuarios" SET rut = %s, id_rol = %s WHERE id_usuario = %s',
+                        (rut, id_rol, id_usuario))
+            
+            if password:
+                cur.execute('UPDATE "Usuarios" SET password = %s WHERE id_usuario = %s',
+                            (password, id_usuario))
+
+            # C. LÓGICA APODERADO (Usando el nombre correcto de columna)
+            if id_rol == 2:
+                cur.execute('SELECT 1 FROM "Relacion_Apoderado" WHERE id_usuario = %s', (id_usuario,))
+                if cur.fetchone():
+                    # AQUÍ ESTÁ EL CAMBIO: email_contacto
+                    cur.execute("""
+                        UPDATE "Relacion_Apoderado" 
+                        SET email_contacto = %s, telefono = %s 
+                        WHERE id_usuario = %s
+                    """, (correo_input, telefono_input, id_usuario))
+
+            conn.commit()
+            flash('✅ Usuario actualizado correctamente.', 'success')
+            return redirect(url_for('usuarios'))
+            
+        except Exception as e:
+            conn.rollback()
+            print(f"Error SQL: {e}")
+            flash(f'Error al actualizar: {e}', 'danger')
+    
+    # --- GET: CARGAR DATOS ---
+    # AQUÍ TAMBIÉN CAMBIAMOS EL NOMBRE
+    query_cargar = """
+        SELECT 
+            u.rut, 
+            u.id_rol, 
+            p.nombre, 
+            p.apellido_paterno, 
+            p.apellido_materno, 
+            ra.email_contacto,   -- Nombre correcto en la BD
+            ra.telefono          -- ¿Este nombre es correcto o se llama 'fono'?
+        FROM "Usuarios" u
+        JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
+        LEFT JOIN "Relacion_Apoderado" ra ON u.id_usuario = ra.id_usuario
+        WHERE u.id_usuario = %s
+    """
+    cur.execute(query_cargar, (id_usuario,))
+    user = cur.fetchone()
+    
+    cur.execute('SELECT * FROM "Roles"')
+    roles = cur.fetchall()
+    
+    cur.close(); conn.close()
+    return render_template('editar_usuario.html', user=user, usuario=user, roles=roles)
 
 # --- RUTA: MATRICULAR (Lógica Completa: Alumno + Apoderado) ---
 @app.route('/matricular', methods=['GET', 'POST'])
