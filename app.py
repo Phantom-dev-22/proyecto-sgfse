@@ -581,115 +581,202 @@ def gestion_usuarios():
     return render_template('gestion_usuarios.html')
 
 
-# --- RUTA: PORTAL APODERADO ---
+# --- RUTA: PORTAL APODERADO (CONECTADO A BD REAL) ---
 @app.route('/portal_apoderado')
 def portal_apoderado():
-    # 1. Seguridad básica
-    if 'user_id' not in session:
+    # 1. Seguridad
+    if 'user_id' not in session or session.get('id_rol') != 2:
         return redirect(url_for('login'))
     
-    # 2. Datos simulados (Esto alimenta la tabla de Entradas/Salidas del HTML)
-    # En el futuro, esto vendrá de una consulta SQL a la tabla "Asistencia"
-    datos_movimientos = [
-        {"fecha": "13/01/2026", "entrada": "07:58 AM", "salida": "PENDIENTE"},
-        {"fecha": "12/01/2026", "entrada": "08:05 AM", "salida": "16:15 PM"},
-        {"fecha": "11/01/2026", "entrada": "08:00 AM", "salida": "16:00 PM"},
-    ]
+    id_apoderado = session['user_id']
+    nombre_apoderado = session.get('nombre', 'Apoderado')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # 2. Buscar al Alumno del Apoderado
+    query_alumno = 'SELECT id_alumno FROM "Relacion_Apoderado" WHERE id_usuario = %s'
+    cur.execute(query_alumno, (id_apoderado,))
+    alumno_data = cur.fetchone()
+    
+    movimientos_reales = [] # Lista vacía por si no hay alumno
+    
+    if alumno_data:
+        id_alumno = alumno_data[0]
+        
+        # 3. Buscar Asistencia (Últimos 30 días)
+        query_asistencia = """
+            SELECT fecha, hora_entrada, hora_salida 
+            FROM "Asistencia" 
+            WHERE id_alumno = %s 
+            ORDER BY fecha DESC 
+            LIMIT 30
+        """
+        cur.execute(query_asistencia, (id_alumno,))
+        registros = cur.fetchall()
+        
+        # 4. Formatear datos para que se vean bonitos en la web
+        for reg in registros:
+            # Fecha: De 2026-01-13 a 13/01/2026
+            fecha_fmt = reg[0].strftime('%d/%m/%Y') if reg[0] else "Fecha desc."
+            
+            # Entrada: De 08:00:00 a 08:00
+            ent_fmt = str(reg[1])[:5] if reg[1] else "--:--"
+            
+            # Salida: Si es None, ponemos "PENDIENTE"
+            if reg[2]:
+                sal_fmt = str(reg[2])[:5] # Cortamos los segundos
+            else:
+                sal_fmt = "PENDIENTE"
+            
+            # Guardamos en la lista
+            movimientos_reales.append({
+                "fecha": fecha_fmt,
+                "entrada": ent_fmt,
+                "salida": sal_fmt
+            })
+            
+    cur.close(); conn.close()
 
-    # 3. Renderizamos tu archivo HTML
-    return render_template('portal_apoderado.html', movimientos=datos_movimientos)
+    # 5. Enviamos la lista REAL al HTML
+    return render_template('portal_apoderado.html', movimientos=movimientos_reales)
 
 
- # --- RUTA: GENERAR PDF (Botón Azul) ---
+ # --- RUTA: GENERAR REPORTE PDF (CONECTADO A BD REAL) ---
 @app.route('/generar_reporte', methods=['POST'])
 def generar_reporte():
     if 'user_id' not in session:
         return redirect(url_for('login'))
         
-    # 1. Recibimos los datos crudos del HTML (Formato: YYYY-MM-DD)
-    fecha_inicio_raw = request.form['fecha_inicio']
-    fecha_fin_raw = request.form['fecha_fin']
+    # 1. Recibir fechas del formulario
+    fecha_inicio = request.form['fecha_inicio']
+    fecha_fin = request.form['fecha_fin']
     nombre_apoderado = session.get('nombre', 'Apoderado')
-    
-    # --- FORMATEO DE FECHA (DD/MM/YYYY) ---
-    # Convertimos de Texto Crudo -> Objeto Fecha -> Texto Bonito
-    try:
-        obj_inicio = datetime.strptime(fecha_inicio_raw, '%Y-%m-%d')
-        fecha_inicio_fmt = obj_inicio.strftime('%d/%m/%Y') # Ej: 13/01/2026
-        
-        obj_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d')
-        fecha_fin_fmt = obj_fin.strftime('%d/%m/%Y')
-    except ValueError:
-        # Por si algo falla, usamos la original
-        fecha_inicio_fmt = fecha_inicio_raw
-        fecha_fin_fmt = fecha_fin_raw
+    id_apoderado = session['user_id']
 
-    # 2. Creamos el archivo en memoria (Buffer)
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # 2. BUSCAR AL ALUMNO ASOCIADO
+        # Buscamos en la tabla de relación a quién cuida este apoderado
+        query_alumno = """
+            SELECT A.id_alumno, P.nombre, P.apellido_paterno, C.nombre_curso
+            FROM "Relacion_Apoderado" R
+            JOIN "Alumnos" A ON R.id_alumno = A.id_alumno
+            JOIN "Perfiles" P ON A.id_perfil = P.id_perfil
+            JOIN "Cursos" C ON A.id_curso = C.id_curso
+            WHERE R.id_usuario = %s
+            LIMIT 1
+        """
+        cur.execute(query_alumno, (id_apoderado,))
+        datos_alumno = cur.fetchone()
+
+        # Si no tiene alumno asignado, usamos datos genéricos para no romper el PDF
+        if datos_alumno:
+            id_alumno_real = datos_alumno[0]
+            nombre_alumno = f"{datos_alumno[1]} {datos_alumno[2]}"
+            curso_alumno = datos_alumno[3]
+        else:
+            id_alumno_real = 0
+            nombre_alumno = "Alumno No Asignado"
+            curso_alumno = "Sin Curso"
+
+        # 3. BUSCAR ASISTENCIA REAL (El corazón del reporte)
+        query_asistencia = """
+            SELECT fecha, hora_entrada, hora_salida
+            FROM "Asistencia"
+            WHERE id_alumno = %s 
+            AND fecha >= %s AND fecha <= %s
+            ORDER BY fecha DESC
+        """
+        cur.execute(query_asistencia, (id_alumno_real, fecha_inicio, fecha_fin))
+        registros_reales = cur.fetchall()
+
+    except Exception as e:
+        print(f"Error generando reporte: {e}")
+        registros_reales = [] # Si falla, lista vacía
+        nombre_alumno = "Error de Datos"
+        curso_alumno = "---"
+    finally:
+        cur.close()
+        conn.close()
+
+    # --- 4. FORMATO DE FECHAS (Para el encabezado) ---
+    # Convertimos YYYY-MM-DD a DD/MM/YYYY
+    try:
+        f_ini_fmt = datetime.strptime(fecha_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+        f_fin_fmt = datetime.strptime(fecha_fin, '%Y-%m-%d').strftime('%d/%m/%Y')
+    except:
+        f_ini_fmt, f_fin_fmt = fecha_inicio, fecha_fin
+
+    # --- 5. DIBUJAR EL PDF ---
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
+    p.setTitle(f"Reporte_{fecha_inicio}")
     
-    # --- DIBUJANDO EL PDF ---
-    p.setTitle(f"Reporte_Asistencia_{fecha_inicio_raw}")
-    
-    # Encabezado Institucional
+    # Encabezado
     p.setFont("Helvetica-Bold", 18)
     p.drawString(50, 750, "SGFSE")
     p.setFont("Helvetica", 12)
     p.drawString(50, 735, "Sistema de Gestión de Flujo y Seguridad Escolar")
+    p.line(50, 725, 550, 725)
     
-    p.line(50, 725, 550, 725) # Línea separadora
-    
-    # Datos del Reporte
-    p.setFont("Helvetica-Bold", 10)
-    p.drawString(50, 700, "INFORMACIÓN DEL REPORTE:")
-    
+    # Datos Informativos
+    p.setFont("Helvetica-Bold", 10); p.drawString(50, 700, "INFORMACIÓN DEL REPORTE:")
     p.setFont("Helvetica", 10)
     p.drawString(50, 685, f"Solicitante: {nombre_apoderado}")
+    p.drawString(50, 670, f"Periodo: {f_ini_fmt} al {f_fin_fmt}")
     
-    # AQUÍ USAMOS LA FECHA FORMATEADA (DD/MM/YYYY)
-    p.drawString(50, 670, f"Periodo: {fecha_inicio_fmt} al {fecha_fin_fmt}")
+    # Aquí mostramos el nombre REAL del alumno que trajimos de la BD
+    p.drawString(50, 655, f"Alumno: {nombre_alumno} ({curso_alumno})")
     
-    # (En el futuro aquí pondrás el nombre real del alumno desde la BD)
-    p.drawString(50, 655, "Alumno: Julieta Soto (2° Básico A)")
-    
-    # Título de la Tabla
+    # Tabla
     p.setFont("Helvetica-Bold", 12)
     p.drawString(50, 620, "Detalle de Asistencia:")
     
-    # --- CUERPO DE DATOS (TABLA) ---
-    y_position = 590
-    p.setFont("Courier", 10) # Usamos Courier para que se alinee mejor tipo tabla
+    y = 590
+    p.setFont("Courier", 10)
+    p.drawString(50, y, "FECHA       | ENTRADA   | SALIDA")
+    p.drawString(50, y - 5, "---------------------------------------")
+    y -= 20
     
-    # Cabecera de la tabla
-    p.drawString(50, y_position, "FECHA       | ENTRADA   | SALIDA")
-    p.drawString(50, y_position - 5, "---------------------------------------")
-    y_position -= 20
-    
-    # DATOS SIMULADOS (Para que coincidan con tu imagen)
-    # Nota: Aquí más adelante haremos la consulta SQL real a la tabla "Asistencia"
-    datos_simulados = [
-        ("13/01/2026", "07:58 AM", "PENDIENTE"),
-        ("12/01/2026", "08:05 AM", "16:15 PM"),
-        ("11/01/2026", "08:00 AM", "16:00 PM"),
-        ("10/01/2026", "07:55 AM", "15:50 PM"),
-        ("09/01/2026", "08:10 AM", "16:05 PM"),
-    ]
-    
-    for fecha, ent, sal in datos_simulados:
-        texto_fila = f"{fecha}  | {ent}  | {sal}"
-        p.drawString(50, y_position, texto_fila)
-        y_position -= 15 # Bajamos 15 pixeles por cada fila
-    
+    # --- 6. CICLO REAL (Llenamos la tabla con datos de la BD) ---
+    if registros_reales:
+        for reg in registros_reales:
+            # reg[0] es fecha (date object), reg[1] entrada (time/str), reg[2] salida
+            
+            # Formatear Fecha
+            fecha_txt = reg[0].strftime('%d/%m/%Y') if reg[0] else "--/--/--"
+            
+            # Formatear Entrada (Manejo de vacíos)
+            entrada_txt = str(reg[1])[:5] if reg[1] else "--:--" # Cortamos segundos
+            
+            # Formatear Salida (Manejo de vacíos)
+            salida_txt = str(reg[2])[:5] if reg[2] else "PENDIENTE"
+            
+            # Dibujar Fila
+            fila = f"{fecha_txt}  | {entrada_txt}     | {salida_txt}"
+            p.drawString(50, y, fila)
+            y -= 15
+            
+            # Salto de página si la lista es muy larga
+            if y < 50:
+                p.showPage()
+                p.setFont("Courier", 10)
+                y = 750
+    else:
+        p.drawString(50, y, "No se encontraron registros en este rango de fechas.")
+
     # Pie de página
     p.setFont("Helvetica-Oblique", 8)
-    p.drawString(50, 50, "Documento generado automáticamente por SGFSE. Válido para fines informativos.")
+    p.drawString(50, 30, "Documento oficial generado por SGFSE.")
     
-    # 3. Guardar y Enviar
     p.showPage()
     p.save()
-    
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"Reporte_{fecha_inicio_raw}.pdf", mimetype='application/pdf')   
+    
+    return send_file(buffer, as_attachment=True, download_name=f"Reporte_{fecha_inicio}.pdf", mimetype='application/pdf')   
 
 # --- RUTA: ENVIAR AYUDA (SOLO UNA VEZ) ---
 @app.route('/enviar_ayuda', methods=['POST'])
