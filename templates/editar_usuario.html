@@ -9,13 +9,14 @@
             </div>
             <div class="card-body p-4">
                 
-                <form method="POST">
+                <form method="POST" class="needs-validation" novalidate>
                     
                     <h5 class="mb-3 text-muted">Datos de Cuenta</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">RUT</label>
                             <input type="text" class="form-control" name="rut" value="{{ usuario[0] }}" required>
+                            <div class="invalid-feedback">El RUT no puede quedar vacío.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Rol</label>
@@ -26,12 +27,14 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback">Selecciona un rol válido.</div>
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Nueva Contraseña</label>
                         <input type="password" class="form-control" name="password" placeholder="(Dejar en blanco para mantener la actual)">
+                        <div class="form-text text-muted">Solo escribe aquí si deseas cambiar la clave del usuario.</div>
                     </div>
 
                     <hr>
@@ -40,28 +43,32 @@
                     <div class="mb-3">
                         <label class="form-label">Nombres</label>
                         <input type="text" class="form-control" name="nombre" value="{{ usuario[2] or '' }}" required>
+                        <div class="invalid-feedback">El nombre es obligatorio.</div>
                     </div>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Apellido Paterno</label>
-                            <input type="text" name="apellido_paterno" class="form-control" value="{{ user[3] }}" required>
+                            <input type="text" name="apellido_paterno" class="form-control" value="{{ usuario[3] }}" required>
+                            <div class="invalid-feedback">Campo requerido.</div>
                         </div>
                         
                         <div class="col-md-6">
                             <label class="form-label">Apellido Materno</label>
-                            <input type="text" name="apellido_materno" class="form-control" value="{{ user[4] }}" required>
+                            <input type="text" name="apellido_materno" class="form-control" value="{{ usuario[4] }}" required>
+                            <div class="invalid-feedback">Campo requerido.</div>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Correo Electrónico (Solo Apoderados)</label>
-                            <input type="email" name="correo" class="form-control" value="{{ user[5] if user[5] else '' }}">
+                            <input type="email" name="correo" class="form-control" value="{{ usuario[5] if usuario[5] else '' }}">
+                            <div class="invalid-feedback">Ingresa un formato de correo válido (ej: nombre@correo.com).</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Teléfono (Solo Apoderados)</label>
-                            <input type="text" name="telefono" class="form-control" value="{{ user[6] if user[6] else '' }}">
+                            <input type="text" name="telefono" class="form-control" value="{{ usuario[6] if usuario[6] else '' }}">
                         </div>
                     </div>
 
