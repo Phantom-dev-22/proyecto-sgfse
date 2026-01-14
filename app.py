@@ -53,59 +53,58 @@ def dashboard():
 # --- RUTA DE LOGIN (LA LÓGICA REAL) ---
 # --- RUTA DE INICIO / LOGIN ---
 # Agregamos ambas líneas para que entre por cualquiera de las dos
-@app.route('/', methods=['GET', 'POST'])
+# --- RUTA DE LOGIN ACTUALIZADA ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         rut = request.form['rut']
         clave = request.form['clave']
         
+        # Recibimos el "Sello de Entrada" del HTML (puede ser "1" o "2")
+        rol_entrada = request.form.get('rol_entrada') 
+
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Validamos usuario y traemos su ROL (columna 3)
-        cur.execute('SELECT id_usuario, rut, password_hash, id_rol FROM "Usuarios" WHERE rut = %s', (rut,))
+        # Traemos al usuario de la BD
+        cur.execute('SELECT u.id_usuario, u.rut, u.password_hash, u.id_rol, p.nombre, p.apellido_paterno FROM "Usuarios" u LEFT JOIN "Perfiles" p ON u.id_usuario = p.id_usuario WHERE u.rut = %s', (rut,))
         user = cur.fetchone()
         cur.close()
         conn.close()
 
-        # COMENTARIO PARA DEBUG DE LA CLAVE 
-        #if user:
-        #    print("--- INICIO DEBUG ---")
-        #    print(f"1. RUT en BD:   '{user[1]}'") # user[1] es el RUT
-        #   print(f"2. RUT tipeado: '{rut}'")
-        #    print(f"3. Hash en BD:  '{user[2]}'") # user[2] es el Hash
-        #    print(f"4. Clave tipeada: '{clave}'")
-        #    es_valido = check_password_hash(user[2], clave)
-        #    print(f"5. ¿Coinciden?: {es_valido}")
-        #    print("--- FIN DEBUG ---")
-        #else:
-        #    print("--- DEBUG: NO SE ENCONTRÓ EL USUARIO EN LA BD ---")
-        
         if user and check_password_hash(user[2], clave):
-            session['user_id'] = user[0]
-            session['user_name'] = user[1]
-            session['id_rol'] = user[3] # Guardamos el Rol (1, 2 o 3)
-            
-            # --- SEMÁFORO DE SEGURIDAD (ACTUALIZADO) ---
-            if session['id_rol'] == 1:
-                # Si es Admin (1) -> Va al Dashboard Azul
-                return redirect(url_for('dashboard'))
-            
-            elif session['id_rol'] == 2:
-                # ¡NUEVO! Si es Apoderado (2) -> Va a su Portal Verde
-                return redirect(url_for('portal_apoderado'))
+            id_rol_real = user[3] # Rol real de la BD (1=Admin, 2=Apo)
+
+            # --- VALIDACIÓN ESTRICTA (CORREGIDA) ---
+            # Si los roles no coinciden...
+            if str(id_rol_real) != str(rol_entrada):
                 
+                # 1. CASO ESPECIAL: ¿El Admin puede entrar donde quiera?
+                # Si tú quieres que el Admin sea una "Llave Maestra", descomenta estas 2 lineas:
+                # if id_rol_real == 1:
+                #     pass # El admin pasa aunque se equivoque de puerta
+                # else:
+                
+                # 2. COMPORTAMIENTO NORMAL (ESTRICTO)
+                flash('⛔ Error de Seguridad: Estás intentando ingresar por el portal equivocado.', 'danger')
+                return redirect(url_for('home')) # <--- ¡ESTA LÍNEA ES EL FRENO!
+                                                 # Debe estar alineada con el flash
+
+            # --- SI PASA EL FRENO, RECIÉN ASIGNAMOS SESIÓN ---
+            session['user_id'] = user[0]
+            session['id_rol'] = id_rol_real
+            session['nombre'] = f"{user[4]} {user[5]}" if user[4] else user[1]
+
+            # --- REDIRECCIÓN FINAL (CONFIRMADA) ---
+            # Aquí nos aseguramos de enviarte a TU sitio, no por donde entraste.
+            if id_rol_real == 1:
+                return redirect(url_for('dashboard')) # Admin -> Siempre al Azul
+            elif id_rol_real == 2:
+                return redirect(url_for('portal_apoderado')) # Apo -> Siempre al Verde
             else:
-                # Si es Alumno (3) -> Sigue en construcción
                 session.clear()
-                flash('Tu portal de Alumno está en construcción.', 'info')
-                return redirect(url_for('login'))
-            
-        else:
-            flash('RUT o contraseña incorrectos', 'danger')
-            
-    return render_template('login.html')
+                flash('Tu perfil no tiene acceso.', 'info')
+                return redirect(url_for('home'))
 
 # --- CERRAR SESIÓN ---
 @app.route('/logout')

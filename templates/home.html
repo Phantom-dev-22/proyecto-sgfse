@@ -10,39 +10,30 @@
                 <h2 class="text-primary fw-bold mb-3">Bienvenido al SGFSE</h2>
                 <p class="text-muted mb-4">Sistema de Gestión de Flujo y Seguridad Escolar</p>
                 <hr class="mb-4">
-                
                 <p class="mb-3 fw-bold">Seleccione su perfil para ingresar:</p>
 
                 <div class="d-grid gap-3">
-                    <button onclick="mostrarLogin('Administrador', 'bg-primary')" class="btn btn-outline-primary btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                        <i class="bi bi-person-badge-fill fs-4"></i>
-                        Administrador
+                    <button onclick="mostrarLogin('Administrador', 'bg-primary', 1)" class="btn btn-outline-primary btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                        <i class="bi bi-person-badge-fill fs-4"></i> Administrador
                     </button>
 
-                    <button onclick="mostrarLogin('Apoderado', 'bg-success')" class="btn btn-outline-success btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                        <i class="bi bi-people-fill fs-4"></i>
-                        Apoderado
+                    <button onclick="mostrarLogin('Apoderado', 'bg-success', 2)" class="btn btn-outline-success btn-lg py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                        <i class="bi bi-people-fill fs-4"></i> Apoderado
                     </button>
                 </div>
-
-                <div class="mt-4">
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2">
-                        <i class="bi bi-check-circle-fill me-1"></i> Sistema Operativo
-                    </span>
                 </div>
-            </div>
 
             <div id="seccion-login" style="display: none;">
                 <div id="encabezado-login" class="card text-white mb-4 p-3 shadow-sm" style="margin-top: -2rem; margin-left: -2rem; margin-right: -2rem; border-radius: 0.5rem 0.5rem 0 0;">
-                    <h4 class="mb-0 fw-bold">
-                        <i class="bi bi-shield-lock-fill me-2"></i> Acceso <span id="titulo-rol">Usuario</span>
-                    </h4>
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill me-2"></i> Acceso <span id="titulo-rol">Usuario</span></h4>
                 </div>
 
                 <form action="{{ url_for('login') }}" method="POST">
+                    <input type="hidden" id="rol_entrada" name="rol_entrada" value="">
+
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold text-secondary">RUT de Usuario</label>
-                        <input type="text" name="rut" class="form-control form-control-lg" placeholder="Ej: 12345678-9" required autofocus>
+                        <input type="text" name="rut" class="form-control form-control-lg" placeholder="Ej: 12.345.678-9" required>
                     </div>
 
                     <div class="mb-4 text-start">
@@ -62,23 +53,21 @@
 </div>
 
 <script>
-    function mostrarLogin(rol, claseColor) {
-        // 1. Ocultamos la selección
+    // Ahora la función recibe un tercer dato: el id_rol esperado
+    function mostrarLogin(rol, claseColor, idRol) {
         document.getElementById('seccion-seleccion').style.display = 'none';
         
-        // 2. Preparamos el Login visualmente
-        document.getElementById('titulo-rol').textContent = rol; // Cambia el texto a "Administrador" o "Apoderado"
-        
-        // Cambiamos el color del encabezado (Azul o Verde)
+        document.getElementById('titulo-rol').textContent = rol;
         const header = document.getElementById('encabezado-login');
         header.className = `card text-white mb-4 p-3 shadow-sm ${claseColor}`;
         
-        // 3. Mostramos el Login
+        // AQUÍ ESTÁ LA MAGIA: Guardamos el ID (1 o 2) en el formulario
+        document.getElementById('rol_entrada').value = idRol;
+
         document.getElementById('seccion-login').style.display = 'block';
     }
 
     function volverSeleccion() {
-        // Inverso: Ocultar login, mostrar selección
         document.getElementById('seccion-login').style.display = 'none';
         document.getElementById('seccion-seleccion').style.display = 'block';
     }
