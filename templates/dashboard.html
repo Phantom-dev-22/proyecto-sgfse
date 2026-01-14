@@ -1,68 +1,103 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+
+<style>
+    /* Efecto moderno: Las tarjetas suben un poco al pasar el mouse */
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        cursor: pointer;
+    }
     
-    <div class="bg-primary text-white p-4 rounded shadow-sm mb-4 d-flex justify-content-between align-items-center">
+    /* Iconos grandes con fondo suave circular */
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 15px auto;
+    }
+</style>
+
+<div class="container pb-5">
+
+    <div class="bg-primary text-white p-4 rounded-3 mb-5 shadow d-flex justify-content-between align-items-center mt-4">
         <div>
-            <h2 class="fw-bold"><i class="bi bi-person-workspace"></i> Panel de Administración</h2>
+            <h2 class="fw-bold mb-1"><i class="bi bi-grid-fill me-2"></i> Panel de Administración</h2>
             <p class="mb-0 opacity-75">Bienvenido al Sistema de Gestión SGFSE</p>
         </div>
-        <i class="bi bi-shield-check display-4 opacity-50"></i>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-light text-primary fw-bold shadow-sm px-4">
+            <i class="bi bi-box-arrow-right"></i> Salir
+        </a>
     </div>
 
     <div class="row g-4 mb-5">
+        
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4">
-                    <i class="bi bi-people text-primary display-4 mb-3"></i>
-                    <h5 class="card-title fw-bold">Gestionar Usuarios</h5>
-                    <span class="badge bg-primary mb-3">{{ total_usuarios }} Usuarios</span>
-                    <p class="text-muted small">Crear, editar o eliminar alumnos y apoderados.</p>
-                    <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-outline-primary w-100">Ir a Usuarios</a>
+            <div class="card h-100 border-0 shadow-sm hover-card text-center p-4">
+                <div class="card-body">
+                    <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-dark">Usuarios</h4>
+                    <span class="badge bg-primary mb-3">{{ total_usuarios }} Registrados</span>
+                    <p class="text-muted small">Administra alumnos, apoderados y permisos del sistema.</p>
+                    <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-outline-primary w-100 rounded-pill mt-2">Gestionar</a>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4">
-                    <i class="bi bi-calendar-check text-success display-4 mb-3"></i>
-                    <h5 class="card-title fw-bold">Asistencia</h5>
-                    <p class="text-muted small">Revisar registros de entrada y salida.</p>
-                    <a href="{{ url_for('asistencia') }}" class="btn btn-outline-success w-100 rounded-pill fw-bold">IR A ASISTENCIA</a>
+            <div class="card h-100 border-0 shadow-sm hover-card text-center p-4">
+                <div class="card-body">
+                    <div class="icon-box bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-calendar-check-fill"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-dark">Asistencia</h4>
+                    <span class="badge bg-success mb-3">En Curso</span>
+                    <p class="text-muted small">Revisar registros de entrada y salida en tiempo real.</p>
+                    <a href="{{ url_for('asistencia') }}" class="btn btn-outline-success w-100 rounded-pill mt-2">Ver Asistencia</a>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4">
-                    <i class="bi bi-gear text-secondary display-4 mb-3"></i>
-                    <h5 class="card-title fw-bold">Configuración</h5>
-                    <p class="text-muted small">Ajustes del sistema y perfiles.</p>
-                    <button class="btn btn-outline-secondary w-100" disabled>Ajustes</button>
+            <div class="card h-100 border-0 shadow-sm hover-card text-center p-4">
+                <div class="card-body">
+                    <div class="icon-box bg-secondary bg-opacity-10 text-secondary">
+                        <i class="bi bi-gear-fill"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-dark">Configuración</h4>
+                    <span class="badge bg-secondary mb-3">Sistema</span>
+                    <p class="text-muted small">Ajustes generales de la plataforma y perfiles.</p>
+                    <button class="btn btn-outline-secondary w-100 rounded-pill mt-2" disabled>Ajustes</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-5">
-        <div class="card-header bg-white py-3">
-            <h5 class="fw-bold text-dark mb-0">
-                <i class="bi bi-envelope-exclamation text-warning me-2"></i> 
-                Solicitudes de Ayuda Recientes
-            </h5>
+        <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+            <i class="bi bi-envelope-exclamation-fill text-warning me-2 fs-5"></i>
+            <h5 class="mb-0 fw-bold text-dark">Solicitudes de Ayuda Recientes</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary">
                         <tr>
                             <th class="ps-4">Apoderado</th>
                             <th>Mensaje</th>
                             <th>Fecha</th>
-                            <th>Estado</th>
+                            <th class="text-end pe-4">Estado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,16 +105,16 @@
                             {% for m in mensajes %}
                             <tr>
                                 <td class="ps-4 fw-bold text-primary">{{ m[0] }} {{ m[1] }}</td>
-                                <td>{{ m[2] }}</td>
-                                <td class="text-muted small">{{ m[3].strftime('%d/%m/%Y %H:%M') }}</td>
-                                <td><span class="badge bg-warning text-dark">Pendiente</span></td>
+                                <td class="text-muted text-truncate" style="max-width: 300px;">{{ m[2] }}</td>
+                                <td class="small">{{ m[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td class="text-end pe-4"><span class="badge bg-warning text-dark">Pendiente</span></td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                    No hay mensajes nuevos.
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                    No hay solicitudes nuevas.
                                 </td>
                             </tr>
                         {% endif %}
@@ -87,12 +122,11 @@
                 </table>
             </div>
         </div>
-    </div>
-
-    <div class="text-center mb-5">
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">
-            <i class="bi bi-box-arrow-left me-2"></i> Cerrar Sesión
-        </a>
+        {% if mensajes %}
+        <div class="card-footer bg-white text-center py-3">
+            <a href="#" class="text-decoration-none small fw-bold text-primary">Ver todas las solicitudes <i class="bi bi-arrow-right"></i></a>
+        </div>
+        {% endif %}
     </div>
 
 </div>
