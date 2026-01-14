@@ -1,79 +1,90 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card shadow-sm border-0">
-    <div class="card-body p-4">
+<div class="container mt-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-0"><i class="bi bi-people"></i> Gestión de Usuarios</h2>
+            <p class="text-muted small mb-0">Administración de perfiles y roles</p>
+        </div>
         
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0 text-primary">
-                <i class="bi bi-people-fill"></i> Gestión de Usuarios
-            </h2>
-            <button class="btn btn-success">
-                <a href="{{ url_for('crear_usuario') }}" class="btn btn-success"><i class="bi bi-person-plus-fill"></i> Nuevo Usuario</a> 
-            </button>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>ID</th>
-                        <th>RUT</th>
-                        <th>Nombre Completo</th> <th>Rol Asignado</th>
-                        <th class="text-end">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for usuario in usuarios %}
-                    <tr>
-                        <td>#{{ usuario[0] }}</td>
-                        <td class="fw-bold">{{ usuario[1] }}</td> <td>
-                            {% if usuario[3] %}
-                                {{ usuario[3] }} {{ usuario[4] }} {{ usuario[5] }}
-                            {% else %}
-                                <span class="text-muted fst-italic">(Sin perfil)</span>
-                            {% endif %}
-                        </td>
-
-                        <td>
-                            {% if usuario[2] == 'Administrador' %}
-                                <span class="badge bg-primary">{{ usuario[2] }}</span>
-                            {% elif usuario[2] == 'Apoderado' %}
-                                <span class="badge bg-success">{{ usuario[2] }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ usuario[2] }}</span>
-                            {% endif %}
-                        </td>
-                        
-                        <td class="text-end">
-                            <a href="{{ url_for('editar_usuario', id_usuario=usuario[0]) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                <i class="bi bi-pencil-square"></i>
-                            </a>
-                            <a href="#" onclick="confirmarEliminar({{ usuario[0] }})" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <script>
-                        function confirmarEliminar(id_usuario) {
-                            if (confirm('¿Estás seguro de que quieres eliminar a este usuario?\nEsta acción no se puede deshacer.')) {
-                                // Si dice que SÍ, lo enviamos a la ruta de Python
-                                window.location.href = "/eliminar_usuario/" + id_usuario;
-                            }
-                            // Si dice que NO, no hacemos nada
-                        }
-                    </script>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-4">
-            <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary mt-3">
-                <i class="bi bi-arrow-left"></i> Volver a Gestión
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+            <a href="{{ url_for('crear_usuario') }}" class="btn btn-success">
+                <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
             </a>
         </div>
+    </div>
 
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">ID</th> <th>RUT</th>             <th>Nombre Completo</th> <th>Familiar Asociado</th> <th>Rol Asignado</th>    <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in usuarios %}
+                        <tr>
+                            <td class="ps-4 text-muted small">#{{ user[0] }}</td>
+                            <td class="fw-bold">{{ user[1] }}</td>
+                            
+                            <td>
+                                {{ user[2] }} {{ user[3] }} {{ user[4] if user[4] else '' }}
+                            </td>
+
+                            <td class="text-muted fst-italic text-nowrap">
+                                <i class="bi bi-link-45deg"></i> {{ user[6] }}
+                            </td>
+                            
+                            <td>
+                                {% if user[5] == 'Administrador' %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Admin</span>
+                                {% elif user[5] == 'Apoderado' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success">Apoderado</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Alumno</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('editar_usuario', id_usuario=user[0]) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                
+                                <form action="{{ url_for('eliminar_usuario', id_usuario=user[0]) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Página {{ page }} de {{ total_pages }}</span>
+            
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('usuarios', page=page-1) }}">Anterior</a>
+                    </li>
+                    
+                    <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('usuarios', page=page+1) }}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
 {% endblock %}

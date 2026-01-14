@@ -7,6 +7,7 @@ from flask import send_file
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from datetime import datetime # ¡Para el formato de fecha!
+import math
 
 app = Flask(__name__)
 
@@ -137,38 +138,72 @@ def test_db():
     else:
         return jsonify({"status": "error"}), 500
 
-# --- RUTA PARA VER USUARIOS (GESTIÓN) ---
+# --- RUTA: LISTA DE USUARIOS (CON PAGINACIÓN Y ORDEN MEJORADO) ---
 @app.route('/usuarios')
 def usuarios():
-    if 'user_id' not in session:
+    if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
-    
+
+    # 1. Configuración de Paginación
+    page = request.args.get('page', 1, type=int) # Página actual (por defecto 1)
+    per_page = 10 # Cuántos usuarios ver por página
+    offset = (page - 1) * per_page
+
     conn = get_db_connection()
-    if conn:
-        cur = conn.cursor()
-        
-        # --- AQUÍ ESTÁ LA MAGIA DEL SQL ---
-        # Usamos LEFT JOIN en Perfiles por si acaso hay algún usuario antiguo
-        # que no tenga perfil (como el admin original), para que no desaparezca.
-        query = """
+    cur = conn.cursor()
+
+    # 2. Contar total de usuarios (Para saber cuántas páginas hay)
+    cur.execute('SELECT COUNT(*) FROM "Usuarios"')
+    total_users = cur.fetchone()[0]
+    total_pages = math.ceil(total_users / per_page)
+
+    # 3. CONSULTA MAESTRA (Con límite y nombres completos)
+    query = """
         SELECT 
             u.id_usuario, 
             u.rut, 
-            r.nombre_rol, 
             p.nombre, 
             p.apellido_paterno,
-            p.apellido_materno
+            p.apellido_materno, -- Traemos el materno para el usuario principal
+            r.nombre_rol,
+            
+            COALESCE(
+                -- CASO 1: Si soy Apoderado, busco al ALUMNO (Con 2 apellidos)
+                (SELECT p_alum.nombre || ' ' || p_alum.apellido_paterno || ' ' || COALESCE(p_alum.apellido_materno, '')
+                 FROM "Relacion_Apoderado" ra
+                 JOIN "Alumnos" al ON ra.id_alumno = al.id_alumno
+                 JOIN "Perfiles" p_alum ON al.id_perfil = p_alum.id_perfil
+                 WHERE ra.id_usuario = u.id_usuario
+                 LIMIT 1),
+                 
+                -- CASO 2: Si soy Alumno, busco al APODERADO (Con 2 apellidos)
+                (SELECT p_apo.nombre || ' ' || p_apo.apellido_paterno || ' ' || COALESCE(p_apo.apellido_materno, '')
+                 FROM "Alumnos" al2
+                 JOIN "Relacion_Apoderado" ra2 ON al2.id_alumno = ra2.id_alumno
+                 JOIN "Perfiles" p_apo ON ra2.id_usuario = p_apo.id_usuario
+                 WHERE al2.id_perfil = p.id_perfil 
+                 LIMIT 1),
+                 
+                '---'
+            ) as familiar_asociado
+
         FROM "Usuarios" u
+        JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
         JOIN "Roles" r ON u.id_rol = r.id_rol
-        LEFT JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
-        ORDER BY u.id_usuario ASC;
-        """
-        cur.execute(query)
-        lista_usuarios = cur.fetchall()
-        cur.close()
-        conn.close()
-        
-        return render_template('usuarios.html', usuarios=lista_usuarios)
+        ORDER BY u.id_usuario ASC
+        LIMIT %s OFFSET %s
+    """
+    
+    cur.execute(query, (per_page, offset))
+    usuarios = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return render_template('usuarios.html', 
+                           usuarios=usuarios, 
+                           page=page, 
+                           total_pages=total_pages)
 
 @app.route('/crear_usuario', methods=['GET', 'POST'])
 def crear_usuario():
