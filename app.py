@@ -4,11 +4,12 @@ from config.db import get_db_connection
 from werkzeug.security import check_password_hash, generate_password_hash
 import io
 from flask import send_file
-from reportlab.pdfgen import canvas
+from reportlab.pdfgen import canvas # Para impresión en pdf - 1
 from reportlab.lib.pagesizes import letter
 from datetime import datetime # ¡Para el formato de fecha!
 import math
 from datetime import date
+from xhtml2pdf import pisa # Para impresión en pdf - 2 
 
 app = Flask(__name__)
 
@@ -740,47 +741,61 @@ def portal_apoderado():
     return render_template('portal_apoderado.html', movimientos=movimientos_reales)
 
 
- # --- RUTA: GENERAR REPORTE PDF (CONECTADO A BD REAL) ---
+ # Asegúrate de tener esto arriba en los imports:
+# from datetime import datetime 
+
 @app.route('/generar_reporte', methods=['POST'])
 def generar_reporte():
     if 'user_id' not in session:
         return redirect(url_for('login'))
         
-    # 1. Recibir fechas del formulario
+    # 1. Recibir datos del formulario (Vienen como YYYY-MM-DD)
     fecha_inicio = request.form['fecha_inicio']
     fecha_fin = request.form['fecha_fin']
-    nombre_apoderado = session.get('nombre', 'Apoderado')
     id_apoderado = session['user_id']
+    nombre_apoderado = session.get('nombre', 'Apoderado')
+
+    # 🔴 NUEVO: Función para formatear fecha (de "2026-01-14" a "14/01/2026")
+    def formatear(f):
+        try:
+            return datetime.strptime(f, '%Y-%m-%d').strftime('%d/%m/%Y')
+        except:
+            return f # Si falla, devuelve la original
+
+    # 🔴 NUEVO: Creamos las variables "bonitas" para el PDF
+    fecha_inicio_fmt = formatear(fecha_inicio)
+    fecha_fin_fmt = formatear(fecha_fin)
 
     conn = get_db_connection()
     cur = conn.cursor()
 
     try:
-        # 2. BUSCAR AL ALUMNO ASOCIADO
-        # Buscamos en la tabla de relación a quién cuida este apoderado
+        # 2. BUSCAR ALUMNO ASOCIADO
         query_alumno = """
-            SELECT A.id_alumno, P.nombre, P.apellido_paterno, C.nombre_curso
+            SELECT A.id_alumno, P.nombre, P.apellido_paterno, C.nombre_curso, u.rut
             FROM "Relacion_Apoderado" R
             JOIN "Alumnos" A ON R.id_alumno = A.id_alumno
             JOIN "Perfiles" P ON A.id_perfil = P.id_perfil
             JOIN "Cursos" C ON A.id_curso = C.id_curso
-            WHERE R.id_usuario = %s
+            JOIN "Usuarios" u ON P.id_usuario = u.id_usuario
+            WHERE R.id_usuario = %s 
             LIMIT 1
         """
         cur.execute(query_alumno, (id_apoderado,))
         datos_alumno = cur.fetchone()
 
-        # Si no tiene alumno asignado, usamos datos genéricos para no romper el PDF
         if datos_alumno:
             id_alumno_real = datos_alumno[0]
-            nombre_alumno = f"{datos_alumno[1]} {datos_alumno[2]}"
-            curso_alumno = datos_alumno[3]
+            alumno = {
+                'nombre': f"{datos_alumno[1]} {datos_alumno[2]}",
+                'curso': datos_alumno[3],
+                'rut': datos_alumno[4]
+            }
         else:
-            id_alumno_real = 0
-            nombre_alumno = "Alumno No Asignado"
-            curso_alumno = "Sin Curso"
+            flash("No tienes alumnos asociados.", "warning")
+            return redirect(url_for('portal_apoderado'))
 
-        # 3. BUSCAR ASISTENCIA REAL (El corazón del reporte)
+        # 3. BUSCAR ASISTENCIA (Usamos las fechas ORIGINALES para SQL)
         query_asistencia = """
             SELECT fecha, hora_entrada, hora_salida
             FROM "Asistencia"
@@ -788,93 +803,40 @@ def generar_reporte():
             AND fecha >= %s AND fecha <= %s
             ORDER BY fecha DESC
         """
+        # Aquí usamos fecha_inicio (la cruda) porque la Base de Datos entiende YYYY-MM-DD
         cur.execute(query_asistencia, (id_alumno_real, fecha_inicio, fecha_fin))
-        registros_reales = cur.fetchall()
+        registros = cur.fetchall()
 
     except Exception as e:
-        print(f"Error generando reporte: {e}")
-        registros_reales = [] # Si falla, lista vacía
-        nombre_alumno = "Error de Datos"
-        curso_alumno = "---"
+        print(f"Error: {e}")
+        return "Error generando el reporte", 500
     finally:
         cur.close()
         conn.close()
 
-    # --- 4. FORMATO DE FECHAS (Para el encabezado) ---
-    # Convertimos YYYY-MM-DD a DD/MM/YYYY
-    try:
-        f_ini_fmt = datetime.strptime(fecha_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
-        f_fin_fmt = datetime.strptime(fecha_fin, '%Y-%m-%d').strftime('%d/%m/%Y')
-    except:
-        f_ini_fmt, f_fin_fmt = fecha_inicio, fecha_fin
+    # 4. RENDERIZAR HTML
+    # 🔴 NUEVO: Aquí pasamos las fechas FORMATEDAS (fmt) y la fecha actual
+    html = render_template('reporte_apoderado_pdf.html', 
+                           alumno=alumno,
+                           apoderado=nombre_apoderado,
+                           desde=fecha_inicio_fmt,    # <--- La bonita
+                           hasta=fecha_fin_fmt,       # <--- La bonita
+                           registros=registros,
+                           fecha_actual=datetime.now().strftime('%d/%m/%Y %H:%M')) # <--- Pie de página
 
-    # --- 5. DIBUJAR EL PDF ---
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.setTitle(f"Reporte_{fecha_inicio}")
-    
-    # Encabezado
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(50, 750, "SGFSE")
-    p.setFont("Helvetica", 12)
-    p.drawString(50, 735, "Sistema de Gestión de Flujo y Seguridad Escolar")
-    p.line(50, 725, 550, 725)
-    
-    # Datos Informativos
-    p.setFont("Helvetica-Bold", 10); p.drawString(50, 700, "INFORMACIÓN DEL REPORTE:")
-    p.setFont("Helvetica", 10)
-    p.drawString(50, 685, f"Solicitante: {nombre_apoderado}")
-    p.drawString(50, 670, f"Periodo: {f_ini_fmt} al {f_fin_fmt}")
-    
-    # Aquí mostramos el nombre REAL del alumno que trajimos de la BD
-    p.drawString(50, 655, f"Alumno: {nombre_alumno} ({curso_alumno})")
-    
-    # Tabla
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, 620, "Detalle de Asistencia:")
-    
-    y = 590
-    p.setFont("Courier", 10)
-    p.drawString(50, y, "FECHA       | ENTRADA   | SALIDA")
-    p.drawString(50, y - 5, "---------------------------------------")
-    y -= 20
-    
-    # --- 6. CICLO REAL (Llenamos la tabla con datos de la BD) ---
-    if registros_reales:
-        for reg in registros_reales:
-            # reg[0] es fecha (date object), reg[1] entrada (time/str), reg[2] salida
-            
-            # Formatear Fecha
-            fecha_txt = reg[0].strftime('%d/%m/%Y') if reg[0] else "--/--/--"
-            
-            # Formatear Entrada (Manejo de vacíos)
-            entrada_txt = str(reg[1])[:5] if reg[1] else "--:--" # Cortamos segundos
-            
-            # Formatear Salida (Manejo de vacíos)
-            salida_txt = str(reg[2])[:5] if reg[2] else "PENDIENTE"
-            
-            # Dibujar Fila
-            fila = f"{fecha_txt}  | {entrada_txt}     | {salida_txt}"
-            p.drawString(50, y, fila)
-            y -= 15
-            
-            # Salto de página si la lista es muy larga
-            if y < 50:
-                p.showPage()
-                p.setFont("Courier", 10)
-                y = 750
-    else:
-        p.drawString(50, y, "No se encontraron registros en este rango de fechas.")
+    # 5. GENERAR PDF
+    pdf_buffer = io.BytesIO()
+    pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_buffer)
 
-    # Pie de página
-    p.setFont("Helvetica-Oblique", 8)
-    p.drawString(50, 30, "Documento oficial generado por SGFSE.")
+    if pisa_status.err:
+        return "Hubo un error al crear el PDF", 500
     
-    p.showPage()
-    p.save()
-    buffer.seek(0)
+    pdf_buffer.seek(0)
     
-    return send_file(buffer, as_attachment=True, download_name=f"Reporte_{fecha_inicio}.pdf", mimetype='application/pdf')   
+    return send_file(pdf_buffer, 
+                     as_attachment=True, 
+                     download_name=f"Reporte_Asistencia_{fecha_inicio}.pdf", 
+                     mimetype='application/pdf')
 
 # --- RUTA: ENVIAR AYUDA (SOLO UNA VEZ) ---
 @app.route('/enviar_ayuda', methods=['POST'])
@@ -905,6 +867,71 @@ def enviar_ayuda():
         conn.close()
     
     return redirect(url_for('portal_apoderado'))
+
+# --- GENERADOR DE REPORTES PDF - General ---
+@app.route('/descargar_reporte')
+def descargar_reporte():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 1. Capturar filtros de la URL
+    curso_id = request.args.get('curso_id', type=int)
+    fecha = request.args.get('fecha')
+    
+    if not curso_id or not fecha:
+        flash('❌ Faltan datos para generar el reporte.', 'danger')
+        return redirect(url_for('asistencia'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 2. Obtener datos del Curso (para el título del reporte)
+    cur.execute('SELECT nombre_curso FROM "Cursos" WHERE id_curso = %s', (curso_id,))
+    nombre_curso = cur.fetchone()[0]
+
+    # 3. Obtener la lista de asistencia (Misma lógica que la vista de asistencia)
+    query = """
+        SELECT 
+            p.nombre,
+            p.apellido_paterno,
+            p.apellido_materno,
+            u.rut,
+            COALESCE(asi.id_estado, 1) as id_estado -- 1=Presente por defecto
+        FROM "Alumnos" a
+        JOIN "Perfiles" p ON a.id_perfil = p.id_perfil
+        JOIN "Usuarios" u ON p.id_usuario = u.id_usuario
+        LEFT JOIN "Asistencia" asi ON a.id_alumno = asi.id_alumno AND asi.fecha = %s
+        WHERE a.id_curso = %s
+        ORDER BY p.apellido_paterno ASC
+    """
+    cur.execute(query, (fecha, curso_id))
+    alumnos = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+
+    # 4. Renderizar el HTML del reporte (usaremos un template especial limpio)
+    html = render_template('reporte_pdf.html', 
+                           alumnos=alumnos, 
+                           curso=nombre_curso, 
+                           fecha=fecha)
+
+    # 5. Convertir HTML a PDF en memoria
+    pdf_buffer = io.BytesIO()
+    pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_buffer)
+
+    if pisa_status.err:
+        return "Hubo un error al generar el PDF", 500
+
+    pdf_buffer.seek(0)
+
+    # 6. Enviar el archivo al navegador
+    from flask import send_file
+    return send_file(pdf_buffer, 
+                     as_attachment=True, 
+                     download_name=f"Asistencia_{nombre_curso}_{fecha}.pdf", 
+                     mimetype='application/pdf')
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

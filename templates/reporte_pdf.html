@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Asistencia</title>
+    <style>
+        /* Estilos CSS simples optimizados para PDF */
+        body { font-family: Helvetica, Arial, sans-serif; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0d6efd; padding-bottom: 10px; }
+        .header h1 { margin: 0; color: #0d6efd; font-size: 24px; }
+        .header p { margin: 5px 0; font-size: 14px; color: #666; }
+        
+        .info-box { margin-bottom: 20px; font-size: 14px; }
+        .info-box strong { color: #000; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #f2f2f2; color: #000; padding: 8px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
+        td { padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; }
+        
+        /* Colores de estado (texto) */
+        .estado-1 { color: green; font-weight: bold; } /* Presente */
+        .estado-2 { color: red; font-weight: bold; }   /* Ausente */
+        .estado-3 { color: orange; font-weight: bold; } /* Atrasado */
+
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SGFSE - Sistema Escolar</h1>
+        <p>Reporte Oficial de Asistencia Diaria</p>
+    </div>
+
+    <div class="info-box">
+        <p><strong>Curso:</strong> {{ curso }}</p>
+        <p><strong>Fecha:</strong> {{ fecha }}</p>
+        <p><strong>Total Alumnos:</strong> {{ alumnos|length }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50%;">Alumno</th>
+                <th style="width: 30%;">RUT</th>
+                <th style="width: 20%;">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alum in alumnos %}
+            <tr>
+                <td>{{ alum[1] }} {{ alum[2] }} {{ alum[0] }}</td> <td>{{ alum[3] }}</td> <td>
+                    {% if alum[4] == 1 %}
+                        <span class="estado-1">Presente</span>
+                    {% elif alum[4] == 2 %}
+                        <span class="estado-2">Ausente</span>
+                    {% elif alum[4] == 3 %}
+                        <span class="estado-3">Atrasado</span>
+                    {% else %}
+                        <span>Sin Registro</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Documento generado automáticamente por SGFSE el {{ fecha }}.
+    </div>
+
+</body>
+</html>

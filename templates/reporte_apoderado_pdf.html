@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Asistencia</title>
+    <style>
+        body { font-family: Helvetica, sans-serif; color: #333; padding: 20px; }
+        
+        /* Encabezado */
+        .header { text-align: center; border-bottom: 2px solid #0d6efd; margin-bottom: 20px; padding-bottom: 10px; }
+        .header h1 { color: #0d6efd; margin: 0; font-size: 22px; }
+        .header p { margin: 5px 0; color: #666; font-size: 12px; }
+
+        /* Caja de Información */
+        .info-box { background-color: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px; font-size: 12px; }
+        .info-row { margin-bottom: 5px; }
+        .label { font-weight: bold; width: 100px; display: inline-block; }
+
+        /* Tabla */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background-color: #0d6efd; color: white; padding: 8px; text-align: center; }
+        td { border-bottom: 1px solid #eee; padding: 8px; text-align: center; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        /* Pie de página */
+        .footer { position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SGFSE</h1>
+        <p>Sistema de Gestión de Flujo y Seguridad Escolar</p>
+        <p>Reporte Detallado de Asistencia</p>
+    </div>
+
+    <div class="info-box">
+        <div class="info-row"><span class="label">Alumno:</span> {{ alumno.nombre }}</div>
+        <div class="info-row"><span class="label">RUT:</span> {{ alumno.rut }}</div>
+        <div class="info-row"><span class="label">Curso:</span> {{ alumno.curso }}</div>
+        
+        <div class="info-row" style="margin-top: 20px;"> <span class="label">Solicitante:</span> {{ apoderado }}
+        </div>
+        <div class="info-row"><span class="label">Periodo:</span> Del <strong>{{ desde }}</strong> al <strong>{{ hasta }}</strong></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora Entrada</th>
+                <th>Hora Salida</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in registros %}
+            <tr>
+                <td>{{ reg[0] }}</td>
+                
+                <td>
+                    {% if reg[1] %} {{ reg[1] }} {% else %} --:-- {% endif %}
+                </td>
+                
+                <td>
+                    {% if reg[2] %} {{ reg[2] }} {% else %} <span style="color:red; font-style:italic;">Pendiente</span> {% endif %}
+                </td>
+
+                <td>
+                    {% if reg[1] %}
+                        <span style="color:green; font-weight:bold;">Presente</span>
+                    {% else %}
+                        <span style="color:red; font-weight:bold;">Ausente</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="padding: 20px;">No se encontraron registros de asistencia en este periodo.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Documento generado automáticamente. SGFSE Plataforma Oficial.
+    </div>
+
+</body>
+</html>
