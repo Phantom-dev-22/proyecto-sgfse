@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 450px;">
+        <div class="card-body p-5">
+
+            <div class="text-center mb-4">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex p-3 mb-3">
+                    <i class="bi bi-shield-lock-fill fs-1"></i>
+                </div>
+                <h3 class="fw-bold">Recuperar Acceso</h3>
+                <p class="text-muted small">
+                    Ingresa el correo electrónico asociado a tu cuenta y te enviaremos una contraseña temporal.
+                </p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} d-flex align-items-center small" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <div>{{ message }}</div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" class="needs-validation" novalidate>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-secondary">Correo Electrónico</label>
+                    <div class="input-group has-validation">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                        <input type="email" name="email" class="form-control border-start-0 ps-0" placeholder="nombre@correo.cl" required>
+                        <div class="invalid-feedback">
+                            Por favor, ingresa un correo válido.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                        <i class="bi bi-send-fill me-2"></i> Enviar Nueva Clave
+                    </button>
+                    <a href="{{ url_for('home') }}" class="btn btn-light text-muted btn-sm mt-2">
+                        <i class="bi bi-arrow-left me-1"></i> Volver al Login
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict'
+        // Obtener todos los formularios a los que queremos aplicar estilos de validación de Bootstrap
+        var forms = document.querySelectorAll('.needs-validation')
+
+        // Bucle sobre ellos y evitar el envío
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

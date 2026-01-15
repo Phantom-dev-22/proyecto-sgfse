@@ -37,10 +37,15 @@
                         <div class="invalid-feedback">Por favor, ingresa tu RUT.</div>
                     </div>
 
-                    <div class="mb-4 text-start">
-                        <label class="form-label fw-bold text-secondary">Contraseña</label>
+                    <div class="mb-2 text-start"> <label class="form-label fw-bold text-secondary">Contraseña</label>
                         <input type="password" name="clave" class="form-control form-control-lg" placeholder="••••••••" required>
                         <div class="invalid-feedback">La contraseña es obligatoria.</div>
+                    </div>
+
+                    <div class="mb-4 text-end">
+                        <a href="{{ url_for('recuperar_clave') }}" class="small text-decoration-none text-muted fw-bold">
+                            ¿Olvidaste tu contraseña?
+                        </a>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -69,20 +74,32 @@
         document.getElementById('seccion-login').style.display = 'block';
     }
 
-    // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE ---
+    // Función para volver y limpiar
     function volverSeleccion() {
-        // 1. Ocultar login y mostrar selección
         document.getElementById('seccion-login').style.display = 'none';
         document.getElementById('seccion-seleccion').style.display = 'block';
 
-        // 2. Buscar el formulario
         const form = document.querySelector('.needs-validation');
 
-        // 3. LIMPIEZA PROFUNDA:
         if (form) {
-            form.reset(); // Borra lo que escribiste (RUT y clave)
-            form.classList.remove('was-validated'); // Quita los bordes rojos y mensajes
+            form.reset(); 
+            form.classList.remove('was-validated'); 
         }
     }
+    
+    // Validación Bootstrap
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
 </script>
 {% endblock %}

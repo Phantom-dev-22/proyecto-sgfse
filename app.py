@@ -9,7 +9,9 @@ from reportlab.lib.pagesizes import letter
 from datetime import datetime 
 import math
 from datetime import date
-from xhtml2pdf import pisa 
+from xhtml2pdf import pisa
+import random
+import string 
 
 # 👇 1. AGREGA ESTAS LIBRERÍAS DE CORREO AQUÍ 👇
 import smtplib
@@ -118,6 +120,72 @@ def dashboard():
                            total_usuarios=total_usuarios, 
                            total_alumnos=total_alumnos)
 
+# --- RUTA: RECUPERAR CONTRASEÑA ---
+@app.route('/recuperar_clave', methods=['GET', 'POST'])
+def recuperar_clave():
+    if request.method == 'POST':
+        email_input = request.form['email']
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 1. Buscar si existe un usuario con ese correo (en Perfiles o Relacion_Apoderado)
+        # Nota: Buscamos en 'Relacion_Apoderado' porque ahí guardaste los emails de los apoderados.
+        # Si tienes emails de admin en otra parte, habría que ajustar, pero asumamos apoderados por ahora.
+        query = """
+            SELECT u.id_usuario, p.nombre 
+            FROM "Usuarios" u
+            JOIN "Relacion_Apoderado" ra ON u.id_usuario = ra.id_usuario
+            JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
+            WHERE ra.email_contacto = %s
+        """
+        cur.execute(query, (email_input,))
+        usuario = cur.fetchone()
+        
+        if usuario:
+            id_usuario = usuario[0]
+            nombre = usuario[1]
+            
+            # 2. Generar nueva clave temporal (6 caracteres)
+            nueva_clave = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+            nuevo_hash = generate_password_hash(nueva_clave)
+            
+            # 3. Actualizar en BD
+            cur.execute('UPDATE "Usuarios" SET password_hash = %s WHERE id_usuario = %s', (nuevo_hash, id_usuario))
+            conn.commit()
+            
+            # 4. Enviar Correo
+            try:
+                msg = MIMEText(f"""
+                <h1>Restablecimiento de Clave SGFSE</h1>
+                <p>Hola {nombre},</p>
+                <p>Tu contraseña ha sido restablecida exitosamente.</p>
+                <p><strong>Tu nueva clave temporal es: {nueva_clave}</strong></p>
+                <p>Por favor, ingresa y cámbiala lo antes posible.</p>
+                """, 'html')
+                
+                msg['Subject'] = "🔐 SGFSE: Nueva Contraseña"
+                msg['From'] = f"Soporte SGFSE <{SMTP_EMAIL}>"
+                msg['To'] = email_input
+
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                server.send_message(msg)
+                server.quit()
+                
+                flash('✅ Se ha enviado una nueva contraseña a tu correo.', 'success')
+                return redirect(url_for('login'))
+                
+            except Exception as e:
+                flash(f'Error al enviar correo: {e}', 'danger')
+        else:
+            flash('⚠️ No encontramos ese correo en nuestros registros.', 'warning')
+            
+        cur.close()
+        conn.close()
+        
+    return render_template('recuperar.html')
 
 # --- RUTA DE LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
