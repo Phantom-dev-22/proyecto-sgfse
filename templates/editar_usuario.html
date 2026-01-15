@@ -1,85 +1,121 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Usuario</h4>
-            </div>
-            <div class="card-body p-4">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Editar Usuario</h4>
+                </div>
                 
-                <form method="POST" class="needs-validation" novalidate>
-                    
-                    <h5 class="mb-3 text-muted">Datos de Cuenta</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">RUT</label>
-                            <input type="text" class="form-control" name="rut" value="{{ usuario[0] }}" required>
-                            <div class="invalid-feedback">El RUT no puede quedar vacío.</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Rol</label>
-                            <select class="form-select" name="rol" required>
-                                {% for rol in roles %}
-                                    <option value="{{ rol[0] }}" {% if usuario[1] == rol[0] %}selected{% endif %}>
-                                        {{ rol[1] }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <div class="invalid-feedback">Selecciona un rol válido.</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Nueva Contraseña</label>
-                        <input type="password" class="form-control" name="password" placeholder="(Dejar en blanco para mantener la actual)">
-                        <div class="form-text text-muted">Solo escribe aquí si deseas cambiar la clave del usuario.</div>
-                    </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('editar_usuario', id_usuario=usuario[0] if usuario[0] is number else request.view_args['id_usuario']) }}" method="POST" class="needs-validation" novalidate>
+                        <h5 class="text-secondary fw-bold mb-3 border-bottom pb-2">Datos de la Cuenta</h5>
 
-                    <hr>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">RUT</label>
+                                <input type="text" name="rut" class="form-control" value="{{ usuario[0] }}" required>
+                                <div class="invalid-feedback">El RUT es obligatorio.</div>
+                            </div>
 
-                    <h5 class="mb-3 text-muted">Datos Personales</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Nombres</label>
-                        <input type="text" class="form-control" name="nombre" value="{{ usuario[2] or '' }}" required>
-                        <div class="invalid-feedback">El nombre es obligatorio.</div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Apellido Paterno</label>
-                            <input type="text" name="apellido_paterno" class="form-control" value="{{ usuario[3] }}" required>
-                            <div class="invalid-feedback">Campo requerido.</div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">Rol</label>
+                                <select name="rol" class="form-select" required>
+                                    <option value="" disabled>Seleccione...</option>
+                                    {% for r in roles %}
+                                        <option value="{{ r[0] }}" {% if r[0] == usuario[1] %}selected{% endif %}>
+                                            {{ r[1] }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
+
+                        <h5 class="text-success fw-bold mb-3 border-bottom pb-2">Datos Personales</h5>
                         
-                        <div class="col-md-6">
-                            <label class="form-label">Apellido Materno</label>
-                            <input type="text" name="apellido_materno" class="form-control" value="{{ usuario[4] }}" required>
-                            <div class="invalid-feedback">Campo requerido.</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Nombres</label>
+                                <input type="text" name="nombre" class="form-control" value="{{ usuario[2] }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Ap. Paterno</label>
+                                <input type="text" name="apellido_paterno" class="form-control" value="{{ usuario[3] }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Ap. Materno</label>
+                                <input type="text" name="apellido_materno" class="form-control" value="{{ usuario[4] }}">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Correo Electrónico (Solo Apoderados)</label>
-                            <input type="email" name="correo" class="form-control" value="{{ usuario[5] if usuario[5] else '' }}">
-                            <div class="invalid-feedback">Ingresa un formato de correo válido (ej: nombre@correo.com).</div>
+                        {% if usuario[1] == 2 %}
+                        <div class="mt-4 p-3 bg-light border rounded">
+                            <h6 class="fw-bold text-success"><i class="bi bi-people-fill me-2"></i>Datos de Contacto (Apoderado)</h6>
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Teléfono</label>
+                                    <input type="text" name="telefono" class="form-control" value="{{ usuario[6] or '' }}" placeholder="+569...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Email</label>
+                                    <input type="email" name="correo" class="form-control" value="{{ usuario[5] or '' }}" placeholder="ejemplo@correo.cl">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Teléfono (Solo Apoderados)</label>
-                            <input type="text" name="telefono" class="form-control" value="{{ usuario[6] if usuario[6] else '' }}">
+                        {% endif %}
+
+                        <div class="alert alert-warning border mt-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkPassword" onchange="togglePassword()">
+                                <label class="form-check-label fw-bold" for="checkPassword">
+                                    ¿Desea cambiar la contraseña?
+                                </label>
+                            </div>
+                            <div id="divPassword" class="mt-2 d-none">
+                                <input type="password" name="password" class="form-control" placeholder="Ingrese nueva contraseña (déjelo vacío para mantener la actual)">
+                                <small class="text-muted">Si lo deja vacío, se mantiene la clave anterior.</small>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{{ url_for('usuarios') }}" class="btn btn-secondary me-md-2">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    </div>
-
-                </form>
+                        <div class="d-flex justify-content-end gap-3 mt-4">
+                            <a href="{{ url_for('usuarios') }}" class="btn btn-secondary px-4">Cancelar</a>
+                            <button type="submit" class="btn btn-warning fw-bold px-4">
+                                <i class="bi bi-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function togglePassword() {
+        const check = document.getElementById('checkPassword');
+        const div = document.getElementById('divPassword');
+        if (check.checked) {
+            div.classList.remove('d-none');
+        } else {
+            div.classList.add('d-none');
+            div.querySelector('input').value = ''; 
+        }
+    }
+
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
 {% endblock %}

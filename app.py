@@ -11,11 +11,75 @@ import math
 from datetime import date
 from xhtml2pdf import pisa 
 
+# 👇 1. AGREGA ESTAS LIBRERÍAS DE CORREO AQUÍ 👇
+import smtplib
+from email.mime.text import MIMEText
+
 app = Flask(__name__)
 
 # CONFIGURACIÓN DE SEGURIDAD
 app.secret_key = "tesis_mauricio_secret_key" 
 bcrypt = Bcrypt(app) 
+
+
+# 👇 2. PEGA LA CONFIGURACIÓN DEL CORREO AQUÍ (ANTES DE LAS RUTAS) 👇
+
+# --- CONFIGURACIÓN DE CORREO ---
+# Reemplaza con tus datos reales
+SMTP_EMAIL = "mauricio.manriquez.cordero@gmail.com"  
+SMTP_PASSWORD = "bpaptrwigcdrxjye" 
+
+def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado):
+    """
+    Envía un correo al apoderado avisando que el alumno llegó.
+    """
+    try:
+        # 1. Capturamos la hora exacta AHORA
+        hora_actual = datetime.now().strftime("%d/%m/%Y a las %H:%M hrs")
+        
+        subject = f"🔔 SGFSE: Ingreso Registrado - {nombre_alumno}"
+        
+        # 2. Insertamos la variable {hora_actual} en el HTML
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <div style="border: 1px solid #ddd; padding: 20px; border-radius: 10px; max-width: 600px;">
+                    <h2 style="color: #0d6efd;">Sistema de Gestión de Flujo y Seguridad Escolar</h2>
+                    <p>Estimado Apoderado,</p>
+                    <p>Le informamos que el alumno <strong>{nombre_alumno}</strong> (RUT: {rut_alumno}) 
+                    ha registrado su ingreso al establecimiento correctamente.</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #198754; margin: 20px 0;">
+                        <p style="margin: 0;"><strong>🕒 Hora de registro:</strong> {hora_actual}</p>
+                        <p style="margin: 5px 0 0 0;"><strong>📍 Estado:</strong> Presente</p>
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px solid #eee;">
+                    <p style="font-size: 12px; color: gray;">
+                        Este es un mensaje automático generado por SGFSE. Por favor no responder a este correo.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+
+        msg = MIMEText(body, 'html')
+        msg['Subject'] = subject
+        msg['From'] = f"SGFSE Notificaciones <{SMTP_EMAIL}>"
+        msg['To'] = email_apoderado
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        print(f"✅ Correo enviado a {email_apoderado}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error enviando correo: {e}")
+        return False
 
 # --- RUTA DE INICIO ---
 @app.route('/')
@@ -824,6 +888,66 @@ def descargar_reporte():
                      as_attachment=True, 
                      download_name=f"Asistencia_{nombre_curso}_{fecha}.pdf", 
                      mimetype='application/pdf')
+
+
+# --- SIMULADOR DE TORNIQUETE (CORREGIDO: Nombre Apoderado + PRG) ---
+@app.route('/simular_acceso', methods=['GET', 'POST'])
+def simular_acceso():
+    # Solo admin puede ver el simulador
+    if 'user_id' not in session or session.get('id_rol') != 1:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        rut_alumno_input = request.form['rut_alumno']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # CONSULTA ACTUALIZADA: Ahora traemos también el nombre del apoderado (p_apo)
+        query = """
+            SELECT 
+                p_alum.nombre || ' ' || p_alum.apellido_paterno as nombre_alumno,
+                ra.email_contacto,
+                p_apo.nombre || ' ' || p_apo.apellido_paterno as nombre_apoderado
+            FROM "Usuarios" u_alum
+            JOIN "Perfiles" p_alum ON u_alum.id_usuario = p_alum.id_usuario
+            JOIN "Alumnos" a ON p_alum.id_perfil = a.id_perfil
+            JOIN "Relacion_Apoderado" ra ON a.id_alumno = ra.id_alumno
+            JOIN "Perfiles" p_apo ON ra.id_usuario = p_apo.id_usuario  -- Unión extra para nombre del apoderado
+            WHERE u_alum.rut = %s
+            LIMIT 1
+        """
+        cur.execute(query, (rut_alumno_input,))
+        resultado = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if resultado:
+            nombre_alum = resultado[0]
+            email_apo = resultado[1]
+            nombre_apo_str = resultado[2]
+
+            if email_apo:
+                exito = enviar_notificacion_acceso(nombre_alum, rut_alumno_input, email_apo)
+                
+                if exito:
+                    # NUEVO MENSAJE CORTO (Solo con nombre)
+                    flash(f"Se ha notificado a: <b>{nombre_apo_str}</b>", "success")
+                else:
+                    flash("⚠️ Falló el envío del correo (Revisar credenciales SMTP).", "warning")
+            else:
+                flash(f"⚠️ El alumno existe, pero su apoderado NO tiene correo.", "warning")
+        else:
+            flash(f"❌ RUT <b>{rut_alumno_input}</b> no encontrado.", "danger")
+
+        return redirect(url_for('simular_acceso'))
+
+    return render_template('simulador.html')
+
+
+
+
+
 
 # --- RUTAS ELIMINADAS (COMENTADAS O BORRADAS) ---
 # @app.route('/enviar_ayuda')...

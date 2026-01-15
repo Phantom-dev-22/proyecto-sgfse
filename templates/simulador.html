@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Estilos exclusivos para el efecto de "Scanner" */
+    .scanner-box {
+        position: relative;
+        display: inline-block;
+        padding: 20px;
+        border: 2px dashed #444; /* Borde punteado estilo técnico */
+        border-radius: 10px;
+        background-color: rgba(0,0,0,0.2);
+    }
+    
+    .scan-line {
+        position: absolute;
+        top: 0;
+        left: 10%;
+        width: 80%;
+        height: 3px;
+        background: #dc3545; /* Rojo láser */
+        box-shadow: 0 0 10px #dc3545;
+        animation: scan-animation 2.5s infinite linear;
+        opacity: 0.8;
+    }
+
+    @keyframes scan-animation {
+        0% { top: 10%; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { top: 90%; opacity: 0; }
+    }
+
+    /* Input estilo digital */
+    .digital-input {
+        font-family: 'Courier New', Courier, monospace; /* Fuente tipo código */
+        letter-spacing: 3px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 1.5rem;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            
+            <div class="card shadow-lg border-0 overflow-hidden">
+                
+                <div class="card-header bg-black text-white text-center py-4 border-bottom border-secondary">
+                    <div class="scanner-box mb-3">
+                        <i class="bi bi-qr-code-scan display-1 text-white"></i>
+                        <div class="scan-line"></div> </div>
+                    <h4 class="fw-bold text-uppercase ls-2">Terminal SGFSE</h4>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success px-3">
+                        <i class="bi bi-wifi me-1"></i> SISTEMA EN LÍNEA
+                    </span>
+                </div>
+                
+                <div class="card-body p-5 bg-light">
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} d-flex align-items-center shadow-sm" role="alert">
+                                    <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' }} fs-2 me-3 flex-shrink-0"></i>
+                                    
+                                    <div class="text-break lh-sm">
+                                        {{ message | safe }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" autocomplete="off">
+                        <div class="mb-4 text-center">
+                            <label class="form-label text-muted fw-bold small text-uppercase">Ingrese o Escanee Identificación (RUT)</label>
+                            
+                            <input type="text" name="rut_alumno" 
+                                   class="form-control form-control-lg py-3 digital-input border-2 border-primary" 
+                                   placeholder="11.111.111-1" 
+                                   required autofocus>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-lg fw-bold py-3 shadow-sm" type="submit">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> REGISTRAR ACCESO
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-4 text-center">
+                        <small class="text-muted fst-italic">
+                            <i class="bi bi-info-circle me-1"></i>
+                            El sistema enviará una notificación automática al apoderado asociado.
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white text-center py-3 border-top-0">
+                    <a href="{{ url_for('dashboard') }}" class="text-decoration-none text-muted fw-bold small">
+                        <i class="bi bi-arrow-left"></i> VOLVER AL PANEL DE CONTROL
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
