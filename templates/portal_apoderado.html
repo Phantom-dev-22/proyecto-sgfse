@@ -32,7 +32,7 @@
         <div class="col-md-6">
             <button class="btn btn-success fw-bold w-100 py-3 shadow-sm d-flex align-items-center justify-content-center" 
                     style="background-color: #20c997; border: none;"
-                    data-bs-toggle="modal" data-bs-target="#modalAyuda">
+                    data-bs-toggle="modal" data-bs-target="#modalContacto">
                 <i class="bi bi-question-circle-fill fs-4 me-2"></i>
                 SOLICITUD AYUDA
             </button>
@@ -88,8 +88,7 @@
         </div>
     </div>
 
-</div>
-
+</div> 
 <div class="modal fade" id="modalReporte" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -123,30 +122,41 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalAyuda" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-chat-dots-fill"></i> Solicitud de Ayuda</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="modalContacto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-info-circle-fill me-2"></i> Canales de Soporte</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('enviar_ayuda') }}" method="POST">
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">¿En qué podemos ayudarte?</label>
-                        <textarea name="mensaje_ayuda" class="form-control" rows="4" placeholder="Describe tu problema aquí..." required></textarea>
-                    </div>
-                    <div class="alert alert-warning small py-2">
-                        <i class="bi bi-exclamation-circle"></i> El administrador recibirá este mensaje junto con tus datos de contacto.
-                    </div>
+            <div class="modal-body text-center p-4">
+                <p class="text-muted mb-4">Si tienes problemas con la plataforma, comunícate con administración a través de:</p>
+                
+                <div class="d-grid gap-3">
+                    <a href="mailto:admin@proyecto.cl" class="btn btn-light border p-3 d-flex align-items-center">
+                        <i class="bi bi-envelope-at-fill text-danger fs-3 me-3"></i>
+                        <div class="text-start">
+                            <div class="fw-bold">Correo Electrónico</div>
+                            <div class="small text-muted">admin@proyecto.cl</div>
+                        </div>
+                    </a>
+
+                    <a href="tel:+56912345678" class="btn btn-light border p-3 d-flex align-items-center">
+                        <i class="bi bi-whatsapp text-success fs-3 me-3"></i>
+                        <div class="text-start">
+                            <div class="fw-bold">WhatsApp / Teléfono</div>
+                            <div class="small text-muted">+56 9 1234 5678</div>
+                        </div>
+                    </a>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold">
-                        <i class="bi bi-send-fill me-1"></i> Enviar Solicitud
-                    </button>
+
+                <div class="alert alert-info mt-4 mb-0 small">
+                    <i class="bi bi-clock me-1"></i> Horario de atención: Lunes a Viernes, 08:00 - 18:00 hrs.
                 </div>
-            </form>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pb-4">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Entendido</button>
+            </div>
         </div>
     </div>
 </div>
