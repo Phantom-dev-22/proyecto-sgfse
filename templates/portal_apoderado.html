@@ -1,20 +1,50 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
+<style>
+    /* 1. Arreglar las Tarjetas de Ingreso/Salida */
+    .card-custom-bg {
+        background-color: var(--card-bg); /* Usa la variable inteligente (blanco o gris) */
+        transition: background-color 0.3s ease;
+    }
+
+    /* 2. Arreglar la Lista (El problema principal) */
+    .list-group-item {
+        background-color: transparent; /* Que tome el color de la tarjeta */
+        color: var(--text-color); /* Texto inteligente */
+        border-color: var(--border-color); /* Borde sutil */
+    }
+    
+    /* 3. Arreglar la Alerta de información */
+    .alert-custom {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    /* 4. Arreglar el Encabezado de Bienvenida */
+    .welcome-box {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+</style>
+
 <div class="container mt-4">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded-3 shadow-sm welcome-box">
         <div class="d-flex align-items-center">
-            <div class="bg-light border rounded p-3 me-3">
+            <div class="bg-primary bg-opacity-10 border border-primary border-opacity-10 rounded p-3 me-3">
                 <i class="bi bi-mortarboard-fill display-6 text-primary"></i>
             </div>
             <div>
                 <h4 class="mb-0 fw-bold">Bienvenido/a</h4>
-                <p class="text-muted mb-0">{{ session.get('nombre', 'Apoderado') }}</p>
+                <p class="mb-0 opacity-75">{{ session.get('nombre', 'Apoderado') }}</p>
             </div>
         </div>
         
-        <a href="{{ url_for('logout') }}" class="btn btn-warning text-white fw-bold px-4">
+        <a href="{{ url_for('logout') }}" class="btn btn-warning text-dark fw-bold px-4">
             Cierre Sesión <i class="bi bi-box-arrow-right ms-2"></i>
         </a>
     </div>
@@ -39,23 +69,23 @@
         </div>
     </div>
 
-    <div class="alert alert-light border text-center text-muted small mb-4 shadow-sm">
+    <div class="alert alert-custom text-center small mb-4 shadow-sm">
         <i class="bi bi-info-circle-fill me-1 text-info"></i> 
         Los registros mostrados y los reportes generados corresponden a la actividad de los <strong>últimos 30 días</strong>.
     </div>
 
     <div class="row g-4">
         <div class="col-md-6">
-            <div class="card bg-white border shadow-sm h-100">
-                <div class="card-header bg-white text-center border-0 pt-3">
+            <div class="card card-custom-bg border shadow-sm h-100">
+                <div class="card-header card-custom-bg text-center border-0 pt-3">
                     <h5 class="fw-bold text-secondary">INGRESOS</h5>
                     <hr class="w-25 mx-auto border-3 border-success opacity-100 my-2">
                 </div>
                 <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
                     <ul class="list-group list-group-flush">
                         {% for mov in movimientos %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-bottom-0 border-top">
-                            <span class="fw-bold text-muted">{{ mov.fecha }}</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                            <span class="fw-bold opacity-75">{{ mov.fecha }}</span>
                             <span class="badge bg-success rounded-pill px-3 py-2">{{ mov.entrada }}</span>
                         </li>
                         {% endfor %}
@@ -65,16 +95,16 @@
         </div>
 
         <div class="col-md-6">
-            <div class="card bg-white border shadow-sm h-100">
-                <div class="card-header bg-white text-center border-0 pt-3">
+            <div class="card card-custom-bg border shadow-sm h-100">
+                <div class="card-header card-custom-bg text-center border-0 pt-3">
                     <h5 class="fw-bold text-secondary">SALIDAS</h5>
                     <hr class="w-25 mx-auto border-3 border-danger opacity-100 my-2">
                 </div>
                 <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
                     <ul class="list-group list-group-flush">
                         {% for mov in movimientos %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 border-bottom-0 border-top">
-                            <span class="fw-bold text-muted">{{ mov.fecha }}</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                            <span class="fw-bold opacity-75">{{ mov.fecha }}</span>
                             {% if mov.salida == 'PENDIENTE' %}
                                 <span class="badge bg-secondary opacity-25 rounded-pill px-3 py-2">--:--</span>
                             {% else %}
@@ -89,6 +119,7 @@
     </div>
 
 </div> 
+
 <div class="modal fade" id="modalReporte" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -131,7 +162,6 @@
             </div>
             <div class="modal-body text-center p-4">
                 <p class="text-muted mb-4">Si tienes problemas con la plataforma, comunícate con administración a través de:</p>
-                
                 <div class="d-grid gap-3">
                     <a href="mailto:admin@proyecto.cl" class="btn btn-light border p-3 d-flex align-items-center">
                         <i class="bi bi-envelope-at-fill text-danger fs-3 me-3"></i>
@@ -140,7 +170,6 @@
                             <div class="small text-muted">admin@proyecto.cl</div>
                         </div>
                     </a>
-
                     <a href="tel:+56912345678" class="btn btn-light border p-3 d-flex align-items-center">
                         <i class="bi bi-whatsapp text-success fs-3 me-3"></i>
                         <div class="text-start">
@@ -148,10 +177,6 @@
                             <div class="small text-muted">+56 9 1234 5678</div>
                         </div>
                     </a>
-                </div>
-
-                <div class="alert alert-info mt-4 mb-0 small">
-                    <i class="bi bi-clock me-1"></i> Horario de atención: Lunes a Viernes, 08:00 - 18:00 hrs.
                 </div>
             </div>
             <div class="modal-footer justify-content-center border-0 pb-4">

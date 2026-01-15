@@ -140,16 +140,21 @@ def usuarios():
     params_query = []
 
     if busqueda:
+        # CORRECCIÓN: Concatenamos (p.nombre + espacio + paterno + espacio + materno)
+        # Usamos COALESCE(..., '') para que si no tiene apellido materno no se rompa la búsqueda.
         where_clause = """
-            WHERE (u.rut ILIKE %s OR 
-                   p.nombre ILIKE %s OR 
-                   p.apellido_paterno ILIKE %s OR 
-                   p.apellido_materno ILIKE %s)
+            WHERE (
+                u.rut ILIKE %s OR 
+                (p.nombre || ' ' || p.apellido_paterno || ' ' || COALESCE(p.apellido_materno, '')) ILIKE %s
+            )
         """
-        # El símbolo % es el comodín para buscar "que contenga el texto"
+        
         termino = f"%{busqueda}%"
-        params_count = [termino, termino, termino, termino]
-        params_query = [termino, termino, termino, termino]
+        
+        # IMPORTANTE: Ahora solo hay 2 signos %s en el SQL (RUT y NombreCompleto),
+        # así que la lista solo debe tener 2 elementos.
+        params_count = [termino, termino]
+        params_query = [termino, termino]
 
     # 3. Contar total (Aplicando el filtro si existe)
     query_count = f"""
@@ -213,47 +218,58 @@ def usuarios():
                            total_pages=total_pages,
                            busqueda=busqueda) # Devolvemos la búsqueda para mantenerla en el input
 
+# --- RUTA: CREAR USUARIO (CON LÓGICA DE CONTRASEÑA DIFERENCIADA) ---
 @app.route('/crear_usuario', methods=['GET', 'POST'])
 def crear_usuario():
+    if 'user_id' not in session or session.get('id_rol') != 1:
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
-        rut = request.form['rut']
-        clave_plana = request.form['clave']
-        id_rol = request.form['id_rol']
-        
-        nombre = request.form['nombre']
-        app_paterno = request.form['app_paterno']
-        app_materno = request.form['app_materno']
-
-        clave_encriptada = generate_password_hash(clave_plana)
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
         try:
-            cur.execute("""
-                INSERT INTO "Usuarios" (rut, password_hash, id_rol)
-                VALUES (%s, %s, %s)
-                RETURNING id_usuario;
-            """, (rut, clave_encriptada, id_rol))
+            rut = request.form['rut']
+            id_rol = request.form['id_rol']
             
-            nuevo_id_usuario = cur.fetchone()[0]
+            # --- LÓGICA DE CONTRASEÑA ---
+            if id_rol == '1': 
+                # Si es ADMIN, la clave viene del formulario
+                clave_plana = request.form.get('clave')
+                if not clave_plana:
+                    flash('El administrador debe tener una contraseña.', 'error')
+                    return redirect(url_for('crear_usuario'))
+            else:
+                # Si es APODERADO o ALUMNO, la clave es el RUT
+                clave_plana = rut 
+            
+            # Encriptamos la clave elegida
+            password_hash = generate_password_hash(clave_plana)
 
-            cur.execute("""
-                INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno)
-                VALUES (%s, %s, %s, %s)
-            """, (nuevo_id_usuario, nombre, app_paterno, app_materno))
+            # Datos del Perfil
+            nombre = request.form['nombre']
+            ape_p = request.form['apellido_paterno']
+            ape_m = request.form['apellido_materno']
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            # Insertar Usuario
+            cur.execute('INSERT INTO "Usuarios" (rut, password_hash, id_rol) VALUES (%s, %s, %s) RETURNING id_usuario',
+                        (rut, password_hash, id_rol))
+            new_id_usuario = cur.fetchone()[0]
+
+            # Insertar Perfil
+            cur.execute('INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno) VALUES (%s, %s, %s, %s)',
+                        (new_id_usuario, nombre, ape_p, ape_m))
 
             conn.commit()
-            flash('¡Usuario y Perfil creados correctamente!', 'success')
+            cur.close()
+            conn.close()
+
+            flash('Usuario creado exitosamente.', 'success')
             return redirect(url_for('usuarios'))
 
         except Exception as e:
-            conn.rollback()
-            flash(f'Error al crear ficha: {e}', 'danger')
+            flash(f'Error al crear usuario: {e}', 'error')
             return redirect(url_for('crear_usuario'))
-        finally:
-            cur.close()
-            conn.close()
 
     return render_template('crear_usuario.html')
 
@@ -812,6 +828,118 @@ def descargar_reporte():
 # --- RUTAS ELIMINADAS (COMENTADAS O BORRADAS) ---
 # @app.route('/enviar_ayuda')...
 # @app.route('/resolver_solicitud')...
+
+
+
+
+# ==========================================
+# ZONA DE HERRAMIENTAS (Desactivado para producción)
+# ==========================================
+
+# --- RUTA TEMPORAL: POBLAR BASE DE DATOS  ---
+#@app.route('/poblar_automatico')
+#def poblar_automatico():
+#    # 1. Seguridad básica
+#    if 'user_id' not in session or session.get('id_rol') != 1:
+#        return "⛔ Debes ser administrador para ejecutar esto."
+
+#    import random
+#    from werkzeug.security import generate_password_hash
+#    from datetime import date
+
+#    conn = get_db_connection()
+#    cur = conn.cursor()
+
+#    # Datos falsos para generar
+#    nombres = ["Agustín", "Vicente", "Martín", "Matías", "Benjamín", "Sofía", "Emilia", "Isidora", "Trinidad", "Florencia", "Lucas", "Mateo", "Gaspar"]
+#    apellidos = ["Tapia", "Reyes", "Fuentes", "Castillo", "Espinoza", "Lagos", "Pizarro", "Saavedra", "Carrasco", "Barraza", "Soto", "Muñoz", "Rojas", "Díaz"]
+    
+#    reporte = ["<h1>🚀 Reporte de Poblado Masivo</h1><ul>"]
+    
+#    try:
+#        # 1. Obtener cursos
+#        cur.execute('SELECT id_curso, nombre_curso FROM "Cursos" ORDER BY id_curso')
+#        cursos = cur.fetchall()
+        
+#        # Empezamos el contador en 100 para que al sumar 25 millones quede 25.000.100 (8 dígitos base)
+#        contador_global = 100 
+        
+#        for curso in cursos:
+#            id_c = curso[0]
+#            nom_c = curso[1]
+            
+#            # Revisar si ya tiene alumnos
+#            cur.execute('SELECT COUNT(*) FROM "Alumnos" WHERE id_curso = %s', (id_c,))
+#            cantidad = cur.fetchone()[0]
+            
+#            if cantidad > 0:
+#                reporte.append(f"<li style='color:gray'>El curso <b>{nom_c}</b> ya tiene {cantidad} alumnos. (Omitido)</li>")
+#                continue
+            
+#            # Si está vacío, creamos 8 alumnos
+#            reporte.append(f"<li>🟢 Poblando <b>{nom_c}</b> con 8 alumnos nuevos...</li>")
+            
+#            for _ in range(8):
+#                contador_global += 1
+                
+#                # --- CORRECCIÓN RUT ALUMNO (Max 12 caracteres) ---
+#                # Generamos base 25.000.XXX
+#                # Formato final: 25.000.101-K (12 chars exactos)
+#                rut_base_alum = 25000000 + contador_global
+#                # Truco para poner puntos automáticamente
+#                rut_str_alum = f"{rut_base_alum:,.0f}".replace(",", ".") 
+#                rut_alum = f"{rut_str_alum}-K"
+                
+#                pass_alum = generate_password_hash(rut_alum)
+#                nom_alum = random.choice(nombres)
+#                ape_alum = random.choice(apellidos)
+                
+#                # Usuario
+#                cur.execute('INSERT INTO "Usuarios" (rut, password_hash, id_rol) VALUES (%s, %s, 3) RETURNING id_usuario', (rut_alum, pass_alum))
+#                id_usr_alum = cur.fetchone()[0]
+                
+#                # Perfil
+#                cur.execute('INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno) VALUES (%s, %s, %s, %s) RETURNING id_perfil',
+#                            (id_usr_alum, nom_alum, ape_alum, random.choice(apellidos)))
+#                id_perf_alum = cur.fetchone()[0]
+                
+#                # Ficha Alumno
+#                cur.execute('INSERT INTO "Alumnos" (id_perfil, id_curso, fecha_nacimiento, sexo, direccion) VALUES (%s, %s, %s, %s, %s) RETURNING id_alumno',
+#                            (id_perf_alum, id_c, '2015-01-01', 'M', 'Calle Falsa 123'))
+#                id_alum_real = cur.fetchone()[0]
+                
+#                # --- CORRECCIÓN RUT APODERADO (Max 12 caracteres) ---
+#                rut_base_apo = 15000000 + contador_global
+#                rut_str_apo = f"{rut_base_apo:,.0f}".replace(",", ".")
+#                rut_apo = f"{rut_str_apo}-K"
+                
+#                pass_apo = generate_password_hash(rut_apo)
+                
+#                # Usuario Apo
+#                cur.execute('INSERT INTO "Usuarios" (rut, password_hash, id_rol) VALUES (%s, %s, 2) RETURNING id_usuario', (rut_apo, pass_apo))
+#                id_usr_apo = cur.fetchone()[0]
+                
+#                # Perfil Apo
+#               cur.execute('INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno) VALUES (%s, %s, %s, %s)',
+#                            (id_usr_apo, random.choice(nombres), ape_alum, "Apoderado"))
+                
+#                # Vínculo
+#                cur.execute('INSERT INTO "Relacion_Apoderado" (id_usuario, id_alumno, parentesco, telefono, email_contacto) VALUES (%s, %s, %s, %s, %s)',
+#                            (id_usr_apo, id_alum_real, "Apoderado", "+56911111111", "test@prueba.cl"))
+
+#        conn.commit()
+#        reporte.append("</ul><h3 style='color:green'>✅ ¡Proceso terminado con éxito!</h3>")
+#        reporte.append(f"<a href='{url_for('dashboard')}'>Volver al Dashboard</a>")
+
+#    except Exception as e:
+#        conn.rollback()
+#        reporte.append(f"</ul><h3 style='color:red'>❌ Error Fatal: {e}</h3>")
+    
+#    finally:
+#        cur.close()
+#        conn.close()
+
+#    return "".join(reporte)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

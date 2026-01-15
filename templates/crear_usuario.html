@@ -1,71 +1,131 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0"><i class="bi bi-person-plus-fill"></i> Registrar Nuevo Usuario</h4>
-            </div>
-            <div class="card-body p-4">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Crear Nuevo Usuario</h4>
+                </div>
                 
-                <form method="POST" action="{{ url_for('crear_usuario') }}" class="needs-validation" novalidate>
-                    
-                    <h5 class="mb-3 text-muted">Datos de Cuenta</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="rut" class="form-label">RUT</label>
-                            <input type="text" class="form-control" name="rut" placeholder="11.111.111-1" required>
-                            <div class="invalid-feedback">Debes ingresar un RUT válido.</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="rol" class="form-label">Rol</label>
-                            <select class="form-select" name="id_rol" required>
-                                <option value="" selected disabled>Seleccione...</option>
-                                <option value="1">Administrador</option>
-                                <option value="2">Apoderado</option>
-                                <option value="3">Alumno</option>
-                            </select>
-                             <div class="invalid-feedback">Selecciona un rol.</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="clave" class="form-label">Contraseña</label>
-                        <input type="password" class="form-control" name="clave" required>
-                         <div class="invalid-feedback">La contraseña es obligatoria.</div>
-                    </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('crear_usuario') }}" method="POST" class="needs-validation" novalidate>
+                        
+                        <h5 class="text-primary fw-bold mb-3 border-bottom pb-2">Datos de la Cuenta</h5>
 
-                    <hr>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Rol Asignado</label>
+                                <select name="id_rol" id="select_rol" class="form-select" required onchange="togglePassword()">
+                                    <option value="" selected disabled>Seleccione...</option>
+                                    <option value="1">Administrador</option>
+                                    <option value="2">Apoderado</option>
+                                    <option value="3">Alumno</option>
+                                </select>
+                                <div class="invalid-feedback">Debes seleccionar un rol.</div>
+                            </div>
 
-                    <h5 class="mb-3 text-muted">Datos Personales</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Nombres</label>
-                        <input type="text" class="form-control" name="nombre" required>
-                         <div class="invalid-feedback">Ingresa el nombre.</div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Apellido Paterno</label>
-                            <input type="text" class="form-control" name="app_paterno" required>
-                             <div class="invalid-feedback">Campo requerido.</div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">RUT (Usuario)</label>
+                                <input type="text" name="rut" class="form-control" placeholder="11.111.111-1" required>
+                                <div class="invalid-feedback">El RUT es obligatorio.</div>
+                            </div>
+
+                            <div class="col-md-4 d-none" id="div_clave">
+                                <label class="form-label fw-bold small text-muted">Contraseña Manual</label>
+                                <input type="password" name="clave" id="input_clave" class="form-control" placeholder="Crear clave segura">
+                                <div class="invalid-feedback">El administrador requiere contraseña.</div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Apellido Materno</label>
-                            <input type="text" class="form-control" name="app_materno" required>
-                             <div class="invalid-feedback">Campo requerido.</div>
+
+                        <h5 class="text-success fw-bold mb-3 border-bottom pb-2">Datos del Perfil</h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Nombres</label>
+                                <input type="text" name="nombre" class="form-control" required>
+                                <div class="invalid-feedback">Nombre requerido.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Ap. Paterno</label>
+                                <input type="text" name="apellido_paterno" class="form-control" required>
+                                <div class="invalid-feedback">Apellido requerido.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Ap. Materno</label>
+                                <input type="text" name="apellido_materno" class="form-control" required>
+                                <div class="invalid-feedback">Apellido requerido.</div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{{ url_for('usuarios') }}" class="btn btn-secondary me-md-2">Cancelar</a>
-                        <button type="submit" class="btn btn-success">Guardar Ficha</button>
-                    </div>
+                        <div class="alert alert-light border mt-4">
+                            <small class="text-muted" id="msg_clave_rut">
+                                <i class="bi bi-info-circle-fill me-1"></i> 
+                                La contraseña será el <strong>RUT</strong> del usuario.
+                            </small>
+                            <small class="text-primary d-none" id="msg_clave_manual">
+                                <i class="bi bi-shield-lock-fill me-1"></i> 
+                                Para <strong>Administradores</strong>, debes definir una contraseña manual.
+                            </small>
+                        </div>
 
-                </form>
+                        <div class="d-flex justify-content-end gap-3 mt-4">
+                            <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary px-4">Cancelar</a>
+                            <button type="submit" class="btn btn-primary fw-bold px-4">
+                                <i class="bi bi-save me-2"></i>Crear Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function togglePassword() {
+        const rol = document.getElementById('select_rol').value;
+        const divClave = document.getElementById('div_clave');
+        const inputClave = document.getElementById('input_clave');
+        
+        const msgRut = document.getElementById('msg_clave_rut');
+        const msgManual = document.getElementById('msg_clave_manual');
+
+        if (rol === '1') { // Si es ADMINISTRADOR
+            // Mostrar campo clave y hacerlo obligatorio
+            divClave.classList.remove('d-none');
+            inputClave.setAttribute('required', 'required');
+            
+            // Cambiar mensaje
+            msgRut.classList.add('d-none');
+            msgManual.classList.remove('d-none');
+        } else { // Si es APODERADO o ALUMNO
+            // Ocultar campo clave y quitar obligatorio
+            divClave.classList.add('d-none');
+            inputClave.removeAttribute('required');
+            inputClave.value = ""; // Limpiar si había algo escrito
+            
+            // Cambiar mensaje
+            msgRut.classList.remove('d-none');
+            msgManual.classList.add('d-none');
+        }
+    }
+
+    // Validación de Bootstrap
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
 {% endblock %}

@@ -1,45 +1,147 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGFSE - Sistema Escolar</title>
+    <title>Sistema de Gestión SGFSE</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+    </script>
+
+    <style>
+        /* --- ESTILOS GLOBALES --- */
+        :root {
+            --font-family-sans-serif: 'Poppins', sans-serif;
+            /* Light Mode */
+            --bg-body: #f8f9fa; --text-color: #212529; --card-bg: #ffffff;
+            --navbar-bg: #ffffff; --border-color: #dee2e6; --shadow: rgba(0,0,0,0.05);
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] {
+            --bg-body: #121212; --text-color: #f1f1f1; --card-bg: #1e1e1e;
+            --navbar-bg: #1e1e1e; --border-color: #444; --shadow: rgba(0,0,0,0.5);
+        }
+
+        body {
+            font-family: var(--font-family-sans-serif);
+            background-color: var(--bg-body); color: var(--text-color);
+        }
+
+        /* Componentes Adaptados */
+        .card { background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-color); }
+        .navbar { background-color: var(--navbar-bg) !important; border-bottom: 1px solid var(--border-color); transition: background-color 0.3s; }
+        
+        /* Forzar colores en modo oscuro para textos y alertas */
+        [data-theme="dark"] .text-muted { color: #b0b3b8 !important; }
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, 
+        [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 { color: #ffffff !important; }
+        [data-theme="dark"] .nav-card p, [data-theme="dark"] .nav-card small { color: #d1d1d1 !important; }
+        /* Color del texto en las alertas de error en modo oscuro */
+        [data-theme="dark"] .alert-danger { background-color: #3c1f1f; border-color: #5c2b2b; color: #ffadad; }
+
+        /* SWITCH DE TEMA */
+        .theme-toggle-btn {
+            background: none; border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; border-radius: 20px; cursor: pointer; display: flex;
+            align-items: center; gap: 10px; font-size: 1rem; transition: all 0.2s;
+        }
+        .theme-toggle-btn.floating { background-color: var(--card-bg); box-shadow: 0 4px 6px var(--shadow); }
+        .theme-toggle-btn:hover { background-color: rgba(128, 128, 128, 0.1); }
+        [data-theme="dark"] .icon-sun { display: inline-block; color: #ffc107; }
+        [data-theme="dark"] .icon-moon { display: none; }
+        [data-theme="light"] .icon-sun { display: none; }
+        [data-theme="light"] .icon-moon { display: inline-block; color: #6c757d; }
+
+        /* ARREGLO SWEETALERT MODO OSCURO (Para mensajes de éxito) */
+        [data-theme="dark"] .swal2-popup { background-color: #1e1e1e !important; color: #ffffff !important; border: 1px solid #444; }
+        [data-theme="dark"] .swal2-title, [data-theme="dark"] .swal2-html-container { color: #ffffff !important; }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/">
-                <i class="bi bi-mortarboard-fill"></i> SGFSE
-            </a>
+    {% if session.get('user_id') %}
+        <nav class="navbar navbar-expand-lg shadow-sm py-3 mb-4 sticky-top">
+            <div class="container">
+                <a class="navbar-brand fw-bold text-primary fs-4" href="{{ url_for('dashboard') if session.get('id_rol') == 1 else url_for('portal_apoderado') }}">
+                    <i class="bi bi-mortarboard-fill me-2"></i>SGFSE
+                </a>
+                <div class="ms-auto">
+                    <button id="theme-toggle" class="theme-toggle-btn">
+                        <span class="small fw-bold d-none d-sm-inline">Modo</span>
+                        <i class="bi bi-moon-stars-fill icon-moon"></i>
+                        <i class="bi bi-sun-fill icon-sun"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    {% else %}
+        <div class="position-absolute top-0 end-0 p-4" style="z-index: 1000;">
+            <button id="theme-toggle" class="theme-toggle-btn floating">
+                <span class="small fw-bold">Modo</span>
+                <i class="bi bi-moon-stars-fill icon-moon"></i>
+                <i class="bi bi-sun-fill icon-sun"></i>
+            </button>
         </div>
-    </nav>
+    {% endif %}
 
-    <div class="container mt-3">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+    <div class="main-container">
+        <div class="container mt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category != 'success' %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm fw-bold" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
-    <div class="container mt-4">
         {% block content %}{% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // 1. MODO OSCURO
+        const btnToggle = document.getElementById('theme-toggle');
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', target);
+            localStorage.setItem('theme', target);
+        }
+        if(btnToggle) btnToggle.addEventListener('click', toggleTheme);
+
+        // 🔴 2. SISTEMA DE ALERTAS (SOLO "ÉXITO" USA EL CUADRO GIGANTE)
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    // SOLO SI LA CATEGORÍA ES 'success' (Éxito)
+                    {% if category == 'success' %}
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Excelente!',
+                            text: '{{ message }}',
+                            showConfirmButton: false, // Sin botón, se cierra solo
+                            timer: 2500 // 2.5 segundos
+                        });
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </script>
 </body>
 </html>

@@ -1,139 +1,155 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="bi bi-mortarboard-fill"></i> Ficha de Matrícula Completa</h4>
-            </div>
-            <div class="card-body p-4">
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Ficha de Matrícula Completa</h4>
+        </div>
+        
+        <div class="card-body p-4">
+            <form action="{{ url_for('matricular') }}" method="POST" id="form-matricula" class="needs-validation" novalidate>
                 
-                <form method="POST" class="needs-validation" novalidate>
+                <h5 class="text-primary fw-bold mb-3 border-bottom pb-2"><i class="bi bi-backpack me-2"></i>Datos del Alumno</h5>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">RUT Alumno</label>
+                        <input type="text" name="rut_alumno" class="form-control" placeholder="11.111.111-1" required>
+                        <div class="invalid-feedback">Debes ingresar el RUT.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Nombres</label>
+                        <input type="text" name="nombres_alumno" class="form-control" required>
+                        <div class="invalid-feedback">Falta el nombre.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Ap. Paterno</label>
+                        <input type="text" name="ape_p_alumno" class="form-control" required>
+                        <div class="invalid-feedback">Requerido.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Ap. Materno</label>
+                        <input type="text" name="ape_m_alumno" class="form-control" required>
+                        <div class="invalid-feedback">Requerido.</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Curso</label>
+                        <select name="curso_id" class="form-select" required>
+                            <option value="" selected disabled>Seleccione...</option>
+                            {% for c in cursos %}
+                                <option value="{{ c[0] }}">{{ c[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Selecciona un curso.</div>
+                    </div>
                     
-                    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-fill"></i> Datos del Alumno</h5>
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label">RUT Alumno</label>
-                            <input type="text" class="form-control" name="rut_alumno" placeholder="11.111.111-1" required>
-                            <div class="invalid-feedback">El RUT del alumno es obligatorio.</div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">Nombres</label>
-                                    <input type="text" class="form-control" name="nombre_alumno" required>
-                                    <div class="invalid-feedback">Ingresa los nombres.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Ap. Paterno</label>
-                                    <input type="text" class="form-control" name="app_p_alumno" required>
-                                    <div class="invalid-feedback">Campo requerido.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Ap. Materno</label>
-                                    <input type="text" class="form-control" name="app_m_alumno" required>
-                                    <div class="invalid-feedback">Campo requerido.</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Fecha Nac.</label>
+                        <input type="date" name="fecha_nac" class="form-control" required>
+                        <div class="invalid-feedback">Indica la fecha.</div>
                     </div>
 
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Curso</label>
-                            <select class="form-select" name="id_curso" required>
-                                <option value="" selected disabled>Seleccione...</option>
-                                {% for curso in cursos %}
-                                    <option value="{{ curso[0] }}">{{ curso[1] }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="invalid-feedback">Debes asignar un curso.</div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Fecha Nac.</label>
-                            <input type="date" class="form-control" name="fecha_nac" required>
-                            <div class="invalid-feedback">Fecha requerida.</div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Sexo</label>
-                            <select class="form-select" name="sexo" required>
-                                <option value="M">Masculino</option>
-                                <option value="F">Femenino</option>
-                            </select>
-                            <div class="invalid-feedback">Selecciona una opción.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Dirección</label>
-                            <input type="text" class="form-control" name="direccion" required>
-                            <div class="invalid-feedback">Ingresa la dirección.</div>
-                        </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Sexo</label>
+                        <select name="sexo" class="form-select" required>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
                     </div>
 
-                    <h5 class="text-success border-bottom pb-2 mb-3 mt-5"><i class="bi bi-people-fill"></i> Datos del Apoderado</h5>
-                    <div class="alert alert-light border-start border-success border-4">
-                        <small class="text-muted">Si el apoderado ya existe en el sistema (por otro hijo), ingrese su RUT y el sistema lo vinculará automáticamente. Si es nuevo, se creará su cuenta.</small>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" required>
+                        <div class="invalid-feedback">Falta la dirección.</div>
+                    </div>
+                </div>
+
+                <h5 class="text-success fw-bold mb-3 border-bottom pb-2 mt-5"><i class="bi bi-people me-2"></i>Datos del Apoderado</h5>
+                
+                <div class="alert alert-light border border-success border-opacity-25 mb-4">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle-fill text-success me-1"></i>
+                        Si el apoderado ya existe (tiene otro hijo), ingresa su RUT y el sistema lo vinculará automáticamente.
+                    </small>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">RUT Apoderado</label>
+                        <input type="text" name="rut_apoderado" class="form-control" placeholder="9.999.999-9" required>
+                        <div class="invalid-feedback">RUT obligatorio.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Nombres</label>
+                        <input type="text" name="nombres_apo" class="form-control" required>
+                        <div class="invalid-feedback">Nombre obligatorio.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Ap. Paterno</label>
+                        <input type="text" name="ape_p_apo" class="form-control" required>
+                        <div class="invalid-feedback">Apellido obligatorio.</div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Ap. Materno</label>
+                        <input type="text" name="ape_m_apo" class="form-control" required>
+                        <div class="invalid-feedback">Apellido obligatorio.</div>
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">RUT Apoderado</label>
-                            <input type="text" class="form-control" name="rut_apo" placeholder="9.999.999-9" required>
-                            <div class="invalid-feedback">El RUT del apoderado es obligatorio.</div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">Nombres</label>
-                                    <input type="text" class="form-control" name="nombre_apo" required>
-                                    <div class="invalid-feedback">Ingresa los nombres.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Ap. Paterno</label>
-                                    <input type="text" class="form-control" name="app_p_apo" required>
-                                    <div class="invalid-feedback">Campo requerido.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Ap. Materno</label>
-                                    <input type="text" class="form-control" name="app_m_apo" required>
-                                    <div class="invalid-feedback">Campo requerido.</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Parentesco</label>
+                        <select name="parentesco" class="form-select" required>
+                            <option value="" disabled selected>Seleccione...</option>
+                            <option value="Madre">Madre</option>
+                            <option value="Padre">Padre</option>
+                            <option value="Abuelo/a">Abuelo/a</option>
+                            <option value="Tío/a">Tío/a</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        <div class="invalid-feedback">Selecciona parentesco.</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="+569..." required>
+                        <div class="invalid-feedback">Teléfono de contacto requerido.</div>
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Parentesco</label>
-                            <select class="form-select" name="parentesco" required>
-                                <option value="" selected disabled>Seleccione...</option> <option value="Madre">Madre</option>
-                                <option value="Padre">Padre</option>
-                                <option value="Abuelo/a">Abuelo/a</option>
-                                <option value="Tio/a">Tío/a</option>
-                                <option value="Otro">Otro</option>
-                            </select>
-                            <div class="invalid-feedback">Indique el parentesco.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" name="telefono_apo" placeholder="+569..." required>
-                            <div class="invalid-feedback">Teléfono de contacto requerido.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Correo (Contacto)</label>
-                            <input type="email" class="form-control" name="email_apo" required>
-                            <div class="invalid-feedback">Ingrese un correo válido.</div>
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Correo (Notificaciones)</label>
+                        <input type="email" name="email" class="form-control" required>
+                        <div class="invalid-feedback">Correo requerido para avisos.</div>
                     </div>
+                </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
-                        <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary me-md-2">Cancelar</a>
-                        <button type="submit" class="btn btn-primary btn-lg">Registrar Matrícula Completa</button>
-                    </div>
+                <div class="d-flex justify-content-end gap-3 mt-5">
+                    <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-secondary px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="bi bi-save me-2"></i>Registrar Matrícula Completa
+                    </button>
+                </div>
 
-                </form>
-            </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
 {% endblock %}
