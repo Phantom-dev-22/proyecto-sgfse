@@ -13,9 +13,28 @@
             <a href="{{ url_for('gestion_usuarios') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Volver
             </a>
-            <a href="{{ url_for('crear_usuario') }}" class="btn btn-success">
-                <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+            <a href="{{ url_for('crear_usuario') }}" class="btn btn-primary">
+                <i class="bi bi-person-plus-fill"></i> Usuario Simple
             </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3 bg-light rounded">
+            <form action="{{ url_for('usuarios') }}" method="GET" class="d-flex gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="busqueda" class="form-control border-start-0" 
+                           placeholder="Buscar por RUT, nombre o apellido..." 
+                           value="{{ busqueda }}">
+                </div>
+                <button type="submit" class="btn btn-primary px-4">Buscar</button>
+                {% if busqueda %}
+                    <a href="{{ url_for('usuarios') }}" class="btn btn-outline-danger" title="Limpiar filtro">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </form>
         </div>
     </div>
 
@@ -25,66 +44,81 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-4">ID</th> <th>RUT</th>             <th>Nombre Completo</th> <th>Familiar Asociado</th> <th>Rol Asignado</th>    <th class="text-end pe-4">Acciones</th>
+                            <th class="ps-4">ID</th> 
+                            <th>RUT</th>
+                            <th>Nombre Completo</th> 
+                            <th>Familiar Asociado</th> 
+                            <th>Rol</th>
+                            <th class="text-end pe-4">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for user in usuarios %}
-                        <tr>
-                            <td class="ps-4 text-muted small">#{{ user[0] }}</td>
-                            <td class="fw-bold">{{ user[1] }}</td>
-                            
-                            <td>
-                                {{ user[2] }} {{ user[3] }} {{ user[4] if user[4] else '' }}
-                            </td>
-
-                            <td class="text-muted fst-italic">
-                                <i class="bi bi-link-45deg"></i> {{ user[6] }}
-                            </td>
-                            
-                            <td>
-                                {% if user[5] == 'Administrador' %}
-                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Admin</span>
-                                {% elif user[5] == 'Apoderado' %}
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success">Apoderado</span>
-                                {% else %}
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Alumno</span>
-                                {% endif %}
-                            </td>
-
-                            <td class="text-end pe-4">
-                                <a href="{{ url_for('editar_usuario', id_usuario=user[0]) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
+                        {% if usuarios %}
+                            {% for user in usuarios %}
+                            <tr>
+                                <td class="ps-4 text-muted small">#{{ user[0] }}</td>
+                                <td class="fw-bold">{{ user[1] }}</td>
                                 
-                                <form action="{{ url_for('eliminar_usuario', id_usuario=user[0]) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                                <td>
+                                    {{ user[2] }} {{ user[3] }} {{ user[4] if user[4] else '' }}
+                                </td>
+
+                                <td class="text-muted fst-italic">
+                                    <i class="bi bi-link-45deg"></i> {{ user[6] }}
+                                </td>
+                                
+                                <td>
+                                    {% if user[5] == 'Administrador' %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Admin</span>
+                                    {% elif user[5] == 'Apoderado' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success">Apoderado</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Alumno</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('editar_usuario', id_usuario=user[0]) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    
+                                    <form action="{{ url_for('eliminar_usuario', id_usuario=user[0]) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-search fs-1 d-block mb-2 opacity-50"></i>
+                                    No se encontraron usuarios que coincidan con la búsqueda.
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
         
+        {% if total_pages > 1 %}
         <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
             <span class="text-muted small">Página {{ page }} de {{ total_pages }}</span>
             
             <nav>
                 <ul class="pagination pagination-sm mb-0">
                     <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('usuarios', page=page-1) }}">Anterior</a>
+                        <a class="page-link" href="{{ url_for('usuarios', page=page-1, busqueda=busqueda) }}">Anterior</a>
                     </li>
-                    
                     <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('usuarios', page=page+1) }}">Siguiente</a>
+                        <a class="page-link" href="{{ url_for('usuarios', page=page+1, busqueda=busqueda) }}">Siguiente</a>
                     </li>
                 </ul>
             </nav>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

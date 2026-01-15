@@ -116,24 +116,57 @@ def test_db():
     else:
         return jsonify({"status": "error"}), 500
 
-# --- RUTA: LISTA DE USUARIOS ---
+# --- RUTA: LISTA DE USUARIOS (CON BUSCADOR Y PAGINACIÓN) ---
 @app.route('/usuarios')
 def usuarios():
     if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
 
-    page = request.args.get('page', 1, type=int) 
-    per_page = 10 
+    # 1. Configuración de Paginación y Búsqueda
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
     offset = (page - 1) * per_page
+    
+    # Capturamos lo que el usuario escribió (si escribió algo)
+    busqueda = request.args.get('busqueda', '')
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute('SELECT COUNT(*) FROM "Usuarios"')
+    # 2. Construcción Dinámica del WHERE
+    # Si hay búsqueda, filtramos por RUT, Nombre o Apellidos
+    where_clause = ""
+    params_count = []
+    params_query = []
+
+    if busqueda:
+        where_clause = """
+            WHERE (u.rut ILIKE %s OR 
+                   p.nombre ILIKE %s OR 
+                   p.apellido_paterno ILIKE %s OR 
+                   p.apellido_materno ILIKE %s)
+        """
+        # El símbolo % es el comodín para buscar "que contenga el texto"
+        termino = f"%{busqueda}%"
+        params_count = [termino, termino, termino, termino]
+        params_query = [termino, termino, termino, termino]
+
+    # 3. Contar total (Aplicando el filtro si existe)
+    query_count = f"""
+        SELECT COUNT(*) 
+        FROM "Usuarios" u
+        JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
+        {where_clause}
+    """
+    cur.execute(query_count, tuple(params_count))
     total_users = cur.fetchone()[0]
     total_pages = math.ceil(total_users / per_page)
 
-    query = """
+    # 4. CONSULTA MAESTRA (Con filtro + paginación)
+    # Agregamos los parámetros de límite y offset al final
+    params_query.extend([per_page, offset])
+    
+    query = f"""
         SELECT 
             u.id_usuario, 
             u.rut, 
@@ -143,14 +176,14 @@ def usuarios():
             r.nombre_rol,
             
             COALESCE(
-                (SELECT p_alum.nombre || ' ' || p_alum.apellido_paterno || ' ' || COALESCE(p_alum.apellido_materno, '')
+                (SELECT p_alum.nombre || ' ' || p_alum.apellido_paterno 
                  FROM "Relacion_Apoderado" ra
                  JOIN "Alumnos" al ON ra.id_alumno = al.id_alumno
                  JOIN "Perfiles" p_alum ON al.id_perfil = p_alum.id_perfil
                  WHERE ra.id_usuario = u.id_usuario
                  LIMIT 1),
                  
-                (SELECT p_apo.nombre || ' ' || p_apo.apellido_paterno || ' ' || COALESCE(p_apo.apellido_materno, '')
+                (SELECT p_apo.nombre || ' ' || p_apo.apellido_paterno 
                  FROM "Alumnos" al2
                  JOIN "Relacion_Apoderado" ra2 ON al2.id_alumno = ra2.id_alumno
                  JOIN "Perfiles" p_apo ON ra2.id_usuario = p_apo.id_usuario
@@ -163,11 +196,12 @@ def usuarios():
         FROM "Usuarios" u
         JOIN "Perfiles" p ON u.id_usuario = p.id_usuario
         JOIN "Roles" r ON u.id_rol = r.id_rol
+        {where_clause}
         ORDER BY u.id_usuario ASC
         LIMIT %s OFFSET %s
     """
     
-    cur.execute(query, (per_page, offset))
+    cur.execute(query, tuple(params_query))
     usuarios = cur.fetchall()
     
     cur.close()
@@ -176,7 +210,8 @@ def usuarios():
     return render_template('usuarios.html', 
                            usuarios=usuarios, 
                            page=page, 
-                           total_pages=total_pages)
+                           total_pages=total_pages,
+                           busqueda=busqueda) # Devolvemos la búsqueda para mantenerla en el input
 
 @app.route('/crear_usuario', methods=['GET', 'POST'])
 def crear_usuario():
