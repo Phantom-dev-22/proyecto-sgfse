@@ -4,4 +4,5 @@ Werkzeug
 python-dotenv
 gunicorn
 Flask-Bcrypt
-
+reportlab
+xhtml2pdf
