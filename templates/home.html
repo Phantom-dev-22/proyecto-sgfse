@@ -37,9 +37,15 @@
                         <div class="invalid-feedback">Por favor, ingresa tu RUT.</div>
                     </div>
 
-                    <div class="mb-2 text-start"> <label class="form-label fw-bold text-secondary">Contraseña</label>
-                        <input type="password" name="clave" class="form-control form-control-lg" placeholder="••••••••" required>
-                        <div class="invalid-feedback">La contraseña es obligatoria.</div>
+                    <div class="mb-2 text-start"> 
+                        <label class="form-label fw-bold text-secondary">Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" name="clave" id="inputClaveLogin" class="form-control form-control-lg" placeholder="••••••••" required>
+                            <button class="btn btn-outline-secondary" type="button" id="btnVerClaveLogin" title="Ver contraseña">
+                                <i class="bi bi-eye-fill" id="iconoOjoLogin"></i>
+                            </button>
+                            <div class="invalid-feedback">La contraseña es obligatoria.</div>
+                        </div>
                     </div>
 
                     <div class="mb-4 text-end">
@@ -60,7 +66,7 @@
 </div>
 
 <script>
-    // Función para mostrar el formulario correcto
+    // 1. Función para mostrar el formulario correcto
     function mostrarLogin(rol, claseColor, idRol) {
         document.getElementById('seccion-seleccion').style.display = 'none';
         
@@ -74,7 +80,7 @@
         document.getElementById('seccion-login').style.display = 'block';
     }
 
-    // Función para volver y limpiar
+    // 2. Función para volver y limpiar
     function volverSeleccion() {
         document.getElementById('seccion-login').style.display = 'none';
         document.getElementById('seccion-seleccion').style.display = 'block';
@@ -84,10 +90,36 @@
         if (form) {
             form.reset(); 
             form.classList.remove('was-validated'); 
+            
+            // Resetear el ojito también (volver a ocultar si quedó abierto)
+            const input = document.getElementById('inputClaveLogin');
+            const icon = document.getElementById('iconoOjoLogin');
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash-fill');
+            icon.classList.add('bi-eye-fill');
         }
     }
     
-    // Validación Bootstrap
+    // 3. Lógica del OJITO (Nuevo)
+    const btnVer = document.getElementById('btnVerClaveLogin');
+    const inputClave = document.getElementById('inputClaveLogin');
+    const iconoOjo = document.getElementById('iconoOjoLogin');
+
+    if(btnVer){
+        btnVer.addEventListener('click', function() {
+            if (inputClave.type === 'password') {
+                inputClave.type = 'text';
+                iconoOjo.classList.remove('bi-eye-fill');
+                iconoOjo.classList.add('bi-eye-slash-fill');
+            } else {
+                inputClave.type = 'password';
+                iconoOjo.classList.remove('bi-eye-slash-fill');
+                iconoOjo.classList.add('bi-eye-fill');
+            }
+        });
+    }
+
+    // 4. Validación Bootstrap
     (function () {
         'use strict'
         var forms = document.querySelectorAll('.needs-validation')
