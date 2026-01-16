@@ -1430,7 +1430,67 @@ def crear_base_de_datos_nube():
         return f"<h1>❌ ERROR FATAL:</h1> <p>{str(e)}</p>"
 # --- FIN BLOQUE INSTALACION AUTOMATICA ---
 
+# --- INICIO BLOQUE POBLAR DATOS V2 (CON PREKINDER A 8VO) ---
+@app.route('/poblar-datos-iniciales')
+def poblar_datos_iniciales():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
 
+        msg_log = []
+
+        # 1. Insertar ESTADOS DE ASISTENCIA (Solo si no existen)
+        estados = ['Presente', 'Ausente', 'Atrasado', 'Justificado']
+        for estado in estados:
+            cur.execute('SELECT id_estado FROM asistencia_sgfse."Estados_Asistencia" WHERE nombre_estado = %s;', (estado,))
+            if not cur.fetchone():
+                cur.execute('INSERT INTO asistencia_sgfse."Estados_Asistencia" (nombre_estado) VALUES (%s);', (estado,))
+                msg_log.append(f"✅ Estado '{estado}' creado.")
+        
+        # 2. REINICIAR Y CARGAR CURSOS (Prekinder a 8vo)
+        # OJO: 'TRUNCATE' borra todos los cursos existentes para escribirlos de nuevo y bien.
+        # Como tienes 0 alumnos, esto es seguro.
+        cur.execute('TRUNCATE TABLE asistencia_sgfse."Cursos" RESTART IDENTITY CASCADE;')
+        msg_log.append("🧹 Cursos antiguos eliminados (Limpieza).")
+
+        cursos_nuevos = [
+            'Prekinder', 'Kinder',
+            '1° Básico A', '1° Básico B',
+            '2° Básico A', '2° Básico B',
+            '3° Básico A', '3° Básico B',
+            '4° Básico A', '4° Básico B',
+            '5° Básico A', '5° Básico B',
+            '6° Básico A', '6° Básico B',
+            '7° Básico A', '7° Básico B',
+            '8° Básico A', '8° Básico B'
+        ]
+        
+        for curso in cursos_nuevos:
+            cur.execute('INSERT INTO asistencia_sgfse."Cursos" (nombre_curso) VALUES (%s);', (curso,))
+        
+        msg_log.append(f"✅ Se han creado {len(cursos_nuevos)} cursos (De Prekinder a 8° Básico).")
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        # HTML de respuesta
+        html_msg = "<br>".join(msg_log)
+        return f"""
+        <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h1>¡LISTA DE CURSOS ACTUALIZADA! 🏫✨</h1>
+            <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; display: inline-block; text-align: left; border: 1px solid #4caf50;">
+                {html_msg}
+            </div>
+            <br><br>
+            <p>Se han cargado: Prekinder, Kinder y de 1° a 8° Básico.</p>
+            <a href="/" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">VOLVER AL INICIO</a>
+        </div>
+        """
+
+    except Exception as e:
+        return f"<h1>❌ ERROR:</h1> <p>{str(e)}</p>"
+# --- FIN BLOQUE POBLAR DATOS V2 ---
 
 if __name__ == '__main__':
     import os
