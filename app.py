@@ -244,23 +244,39 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         
+        # Obtenemos: id, rut, hash, rol, nombre, apellido
         cur.execute('SELECT u.id_usuario, u.rut, u.password_hash, u.id_rol, p.nombre, p.apellido_paterno FROM "Usuarios" u LEFT JOIN "Perfiles" p ON u.id_usuario = p.id_usuario WHERE u.rut = %s', (rut,))
         user = cur.fetchone()
         cur.close()
         conn.close()
 
+        # user[0]=id, user[1]=rut, user[2]=hash, user[3]=rol
         if user and check_password_hash(user[2], clave):
             id_rol_real = user[3] 
 
-            # Validación estricta
+            # Validación estricta de portal
             if str(id_rol_real) != str(rol_entrada):
                 flash('⛔ Error de Seguridad: Estás intentando ingresar por el portal equivocado.', 'danger')
                 return redirect(url_for('home')) 
 
+            # CREAMOS LA SESIÓN (Importante hacerlo antes de redirigir)
             session['user_id'] = user[0]
             session['id_rol'] = id_rol_real
             session['nombre'] = f"{user[4]} {user[5]}" if user[4] else user[1]
+            # Guardamos el RUT en sesión por si acaso
+            session['rut'] = user[1] 
 
+            # ==================================================================
+            # 🛡️ NUEVO BLOQUE DE SEGURIDAD: FORZAR CAMBIO SI CLAVE == RUT
+            # ==================================================================
+            # Preguntamos: ¿La contraseña guardada en la BD corresponde al RUT del usuario?
+            # user[2] es el Hash guardado, user[1] es el RUT real
+            if check_password_hash(user[2], user[1]):
+                flash('⚠️ POR SEGURIDAD: Detectamos que sigues usando tu RUT como contraseña. Debes crear una nueva clave personalizada para continuar.', 'warning')
+                return redirect(url_for('cambiar_clave'))
+            # ==================================================================
+
+            # Si la clave NO es el RUT, entra normal
             if id_rol_real == 1:
                 return redirect(url_for('dashboard')) 
             elif id_rol_real == 2:
