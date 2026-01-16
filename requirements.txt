@@ -4,3 +4,4 @@ Werkzeug
 python-dotenv
 gunicorn
 Flask-Bcrypt
+
