@@ -405,9 +405,10 @@ def crear_usuario():
 
     return render_template('crear_usuario.html')
 
-# --- RUTA: ELIMINAR USUARIO ---
+# --- RUTA: ELIMINAR USUARIO (PROTEGIDA) ---
 @app.route('/eliminar_usuario/<int:id_usuario>', methods=['POST'])
 def eliminar_usuario(id_usuario):
+    # 1. Validaciones de Sesión
     if 'user_id' not in session or session.get('id_rol') != 1:
         return redirect(url_for('login'))
     
@@ -419,13 +420,16 @@ def eliminar_usuario(id_usuario):
     cur = conn.cursor()
     
     try:
+        # 2. Averiguar qué Rol tiene el usuario que queremos borrar
         cur.execute('SELECT id_rol FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
         dato_rol = cur.fetchone()
         
         if dato_rol:
             rol = dato_rol[0]
             
-            if rol == 3: # Alumno
+            # --- CASO ALUMNO (ROL 3) ---
+            if rol == 3: 
+                # Buscamos su ID de Alumno interno
                 query_buscar_alumno = """
                     SELECT a.id_alumno 
                     FROM "Alumnos" a
@@ -437,29 +441,46 @@ def eliminar_usuario(id_usuario):
                 
                 if alumno:
                     id_alum_int = alumno[0]
-                    cur.execute('DELETE FROM "Asistencia" WHERE id_alumno = %s', (id_alum_int,))
+
+                    # === AQUÍ ESTÁ EL CAMBIO CLAVE ===
+                    # Antes de borrar, PREGUNTAMOS si tiene asistencias
+                    cur.execute('SELECT COUNT(*) FROM "Asistencia" WHERE id_alumno = %s', (id_alum_int,))
+                    cantidad_asistencias = cur.fetchone()[0]
+
+                    if cantidad_asistencias > 0:
+                        # ¡TIENE HISTORIAL! -> ACTIVAMOS EL FRENO DE MANO
+                        flash(f'⛔ ACCIÓN DENEGADA: Este alumno tiene {cantidad_asistencias} registros de asistencia. Por integridad de datos y seguridad no se puede eliminar.', 'danger')
+                        conn.rollback() # Cancelamos todo
+                        return redirect(url_for('usuarios'))
+                    
+                    # Si la cantidad es 0, procedemos a borrar sus relaciones (Apoderados y Tabla Alumnos)
                     cur.execute('DELETE FROM "Relacion_Apoderado" WHERE id_alumno = %s', (id_alum_int,))
                     cur.execute('DELETE FROM "Alumnos" WHERE id_alumno = %s', (id_alum_int,))
+                    # NOTA: YA NO EJECUTAMOS 'DELETE FROM Asistencia', porque ya sabemos que está vacía.
 
-            elif rol == 2: # Apoderado
-                # Si la tabla Solicitud_Ayuda aún existe, borramos los registros, si no, ignora esto
+            # --- CASO APODERADO (ROL 2) ---
+            elif rol == 2: 
+                # Borramos solicitud de ayuda si existe (opcional)
                 try:
                      cur.execute('DELETE FROM "Solicitud_Ayuda" WHERE id_usuario_apo = %s', (id_usuario,))
                 except:
-                     pass # Si la tabla no existe, no pasa nada
-                     
+                     pass 
+                
+                # Borramos la relación con sus pupilos
                 cur.execute('DELETE FROM "Relacion_Apoderado" WHERE id_usuario = %s', (id_usuario,))
 
+            # --- BORRADO FINAL (COMÚN PARA TODOS) ---
+            # Borramos Perfil y Usuario base
             cur.execute('DELETE FROM "Perfiles" WHERE id_usuario = %s', (id_usuario,))
             cur.execute('DELETE FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
             
             conn.commit()
-            flash('✅ Usuario eliminado correctamente.', 'success')
+            flash('✅ Usuario eliminado correctamente (No tenía registros vinculantes).', 'success')
         
     except Exception as e:
         conn.rollback()
         print(f"Error detallado al eliminar: {e}") 
-        flash('❌ Error al eliminar el usuario.', 'danger')
+        flash('❌ Error crítico al intentar eliminar el usuario.', 'danger')
         
     finally:
         cur.close()
