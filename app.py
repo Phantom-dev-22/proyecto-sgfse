@@ -1216,4 +1216,8 @@ def simular_acceso():
 #    return "".join(reporte)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    import os
+    # El puerto lo asigna la nube (Render) o usa 5000 en tu PC
+    port = int(os.environ.get("PORT", 5000))
+    # host='0.0.0.0' es OBLIGATORIO para Docker
+    app.run(host='0.0.0.0', port=port, debug=True)
