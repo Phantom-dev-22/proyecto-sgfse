@@ -64,9 +64,17 @@
             <p class="mb-0 opacity-75" id="fecha-actual">Cargando fecha...</p>
         </div>
         
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm">
-            <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('cambiar_clave') }}" class="btn btn-light border fw-bold rounded-pill px-4 shadow-sm text-primary d-flex align-items-center">
+                <i class="bi bi-key-fill me-2"></i> 
+                <span class="d-none d-md-inline">Cambiar Clave</span>
+            </a>
+
+            <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm d-flex align-items-center">
+                <i class="bi bi-box-arrow-right me-2"></i> 
+                <span class="d-none d-md-inline">Cerrar Sesión</span>
+            </a>
+        </div>
     </div>
 
     <div class="row g-4 mb-5">

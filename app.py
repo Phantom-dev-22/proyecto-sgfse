@@ -187,6 +187,51 @@ def recuperar_clave():
         
     return render_template('recuperar.html')
 
+# --- RUTA: CAMBIAR CONTRASEÑA (AUTOGESTIÓN) ---
+@app.route('/cambiar_clave', methods=['GET', 'POST'])
+def cambiar_clave():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        clave_actual = request.form['clave_actual']
+        nueva_clave = request.form['nueva_clave']
+        confirmar_clave = request.form['confirmar_clave']
+        
+        id_usuario = session['user_id']
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 1. Obtener la contraseña actual de la BD para compararla
+        cur.execute('SELECT password_hash FROM "Usuarios" WHERE id_usuario = %s', (id_usuario,))
+        resultado = cur.fetchone()
+        
+        if resultado:
+            hash_guardado = resultado[0]
+            
+            # 2. Verificar si la clave actual que escribió es correcta
+            if check_password_hash(hash_guardado, clave_actual):
+                
+                # 3. Verificar que la nueva clave coincida con la confirmación
+                if nueva_clave == confirmar_clave:
+                    # 4. Encriptar y Guardar
+                    nuevo_hash = generate_password_hash(nueva_clave)
+                    cur.execute('UPDATE "Usuarios" SET password_hash = %s WHERE id_usuario = %s', (nuevo_hash, id_usuario))
+                    conn.commit()
+                    
+                    flash('✅ ¡Contraseña actualizada con éxito! Por seguridad, inicia sesión nuevamente.', 'success')
+                    return redirect(url_for('logout')) # Lo sacamos para que pruebe su nueva clave
+                else:
+                    flash('⚠️ Las nuevas contraseñas no coinciden.', 'warning')
+            else:
+                flash('⛔ La contraseña actual es incorrecta.', 'danger')
+        
+        cur.close()
+        conn.close()
+        
+    return render_template('cambiar_clave.html')
+
 # --- RUTA DE LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():

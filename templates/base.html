@@ -44,7 +44,6 @@
         [data-theme="dark"] .text-muted { color: #b0b3b8 !important; }
         [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, 
         [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 { color: #ffffff !important; }
-        [data-theme="dark"] .nav-card p, [data-theme="dark"] .nav-card small { color: #d1d1d1 !important; }
         
         /* Alertas en modo oscuro */
         [data-theme="dark"] .alert-danger { background-color: #3c1f1f; border-color: #5c2b2b; color: #ffadad; }
@@ -73,13 +72,13 @@
                 <a class="navbar-brand fw-bold text-primary fs-4" href="{{ url_for('dashboard') if session.get('id_rol') == 1 else url_for('portal_apoderado') }}">
                     <i class="bi bi-mortarboard-fill me-2"></i>SGFSE
                 </a>
-                <div class="ms-auto">
+
+                <div class="ms-auto d-flex align-items-center gap-3">
                     <button id="theme-toggle" class="theme-toggle-btn">
                         <span class="small fw-bold d-none d-sm-inline">Modo</span>
                         <i class="bi bi-moon-stars-fill icon-moon"></i>
                         <i class="bi bi-sun-fill icon-sun"></i>
                     </button>
-                 
                 </div>
             </div>
         </nav>
@@ -127,8 +126,6 @@
             localStorage.setItem('theme', target);
         }
         if(btnToggle) btnToggle.addEventListener('click', toggleTheme);
-        
-        // ¡SweetAlert ELIMINADO! Ya no hay código aquí que genere pop-ups.
     </script>
 </body>
 </html>

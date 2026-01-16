@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 500px;">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Seguridad de la Cuenta</h4>
+        </div>
+        <div class="card-body p-4">
+            
+            <div class="alert alert-light border small text-muted mb-4">
+                <i class="bi bi-info-circle-fill me-1 text-primary"></i> 
+                Para mayor seguridad, te recomendamos actualizar tu contraseña periódicamente.
+            </div>
+
+            <form method="POST" class="needs-validation" novalidate>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary">Contraseña Actual</label>
+                    <input type="password" name="clave_actual" class="form-control" 
+                           placeholder="Ingresa tu clave actual o la temporal recibida" required>
+                    <div class="invalid-feedback">
+                        Por favor, ingresa tu contraseña actual.
+                    </div>
+                </div>
+                
+                <hr class="text-muted opacity-25">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary">Nueva Contraseña</label>
+                    <input type="password" name="nueva_clave" class="form-control" 
+                           placeholder="Ej: ProyectoAsistencia10*" required minlength="6">
+                    <div class="form-text small text-muted">Mínimo 6 caracteres.</div>
+                    <div class="invalid-feedback">
+                        Debes crear una contraseña de al menos 6 caracteres.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary">Confirmar Nueva Contraseña</label>
+                    <div class="input-group has-validation"> <input type="password" name="confirmar_clave" id="inputConfirmar" class="form-control" 
+                               placeholder="Repite la nueva clave" required>
+                        <button class="btn btn-outline-secondary" type="button" id="btnTogglePass" title="Ver contraseña">
+                            <i class="bi bi-eye-fill" id="iconEye"></i>
+                        </button>
+                        <div class="invalid-feedback">
+                            Debes repetir la contraseña para confirmarla.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success fw-bold py-2">
+                        <i class="bi bi-check-lg me-2"></i>Actualizar Contraseña
+                    </button>
+                    <a href="{{ url_for('dashboard') if session.get('id_rol') == 1 else url_for('portal_apoderado') }}" class="btn btn-light text-secondary border">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. SCRIPT PARA EL OJITO (Ver/Ocultar)
+    const btnToggle = document.getElementById('btnTogglePass');
+    const inputPass = document.getElementById('inputConfirmar');
+    const icon = document.getElementById('iconEye');
+
+    if(btnToggle){
+        btnToggle.addEventListener('click', function() {
+            if (inputPass.type === 'password') {
+                inputPass.type = 'text';
+                icon.classList.remove('bi-eye-fill');
+                icon.classList.add('bi-eye-slash-fill');
+            } else {
+                inputPass.type = 'password';
+                icon.classList.remove('bi-eye-slash-fill');
+                icon.classList.add('bi-eye-fill');
+            }
+        });
+    }
+
+    // 2. SCRIPT DE VALIDACIÓN BOOTSTRAP (El que faltaba)
+    (function () {
+        'use strict' // Modo estricto para evitar errores silenciosos
+
+        // Seleccionar todos los formularios que tienen la clase .needs-validation
+        var forms = document.querySelectorAll('.needs-validation')
+
+        // Iterar sobre ellos y prevenir el envío si no son válidos
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
+{% endblock %}
