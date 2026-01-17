@@ -1,8 +1,8 @@
-/* --- 1. VARIABLES DE COLOR (Colores más vivos) --- */
+/* --- 1. VARIABLES DE COLOR  --- */
 :root {
-    --color-primario: #0056b3; /* Azul más intenso */
+    --color-primario: #0056b3; /* Azul intenso */
     --color-secundario: #004494;
-    --color-fondo: #eef2f6;    /* Un gris azulado para el fondo */
+    --color-fondo: #eef2f6;    /* Gris azulado para el fondo */
     --color-texto: #2c3e50;
     --color-acento: #ff9800;   /* Naranja para detalles */
 }
@@ -18,12 +18,12 @@ body {
 /* --- 3. TARJETAS CON EFECTO 3D --- */
 .card {
     border: none;
-    border-radius: 15px; /* Más redondeado */
-    box-shadow: 0 10px 25px rgba(0,0,0, 0.1); /* Sombra mucho más marcada */
-    overflow: hidden; /* Para que el encabezado no se salga de las esquinas */
+    border-radius: 15px; /* Forma redondeado */
+    box-shadow: 0 10px 25px rgba(0,0,0, 0.1); /* Sombras */
+    overflow: hidden; /* Para fijar las esquinas */
 }
 
-/* --- 4. TABLAS CON ENCABEZADO FUERTE (El cambio más notorio) --- */
+/* --- 4. TABLAS CON ENCABEZADO --- */
 .table thead th {
     background-color: var(--color-primario) !important; /* Cabecera AZUL */
     color: white !important; /* Letras BLANCAS */
@@ -34,7 +34,7 @@ body {
     padding: 15px; /* Más aire */
 }
 
-/* Filas cebradas (una gris, una blanca) para leer mejor */
+/* Filas cebradas para mejor lectura */
 .table-hover tbody tr:nth-of-type(odd) {
     background-color: rgba(0, 0, 0, 0.02);
 }
@@ -52,7 +52,7 @@ h2 {
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
-/* --- 6. BOTONES MEJORADOS --- */
+/* --- 6. BOTONES --- */
 .btn {
     border-radius: 50px !important; /* Botones redondos tipo píldora */
     padding-left: 20px;
@@ -64,21 +64,20 @@ h2 {
 }
 
 /* --- 7. CORRECCIÓN DASHBOARD (HEADER) --- */
-/* Forzamos que TODO el texto dentro de la caja azul sea blanco */
 .bg-primary h2, 
 .bg-primary p, 
 .bg-primary i {
     color: white !important;
-    text-shadow: none; /* Quitamos sombra para que se lea nítido */
+    text-shadow: none; /* Retiro de sombra para que se lea nítido */
 }
 
-/* Ajuste fino para el subtítulo del Dashboard */
+/* Ajuste para el subtítulo del Dashboard */
 .bg-primary p {
-    opacity: 0.9; /* Un poco transparente para dar estilo */
+    opacity: 0.9; /* Transparencia para dar estilo */
     font-weight: 400;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700 !important; /* Montserrat Bold */
-    letter-spacing: -0.5px; /* Un poquito más juntas las letras, estilo moderno */
+    letter-spacing: -0.5px; /* Ajuste de espacio de letras */
 }

@@ -3,7 +3,7 @@
 document.addEventListener("DOMContentLoaded", function() {
     
     // --- 1. AUTO-CERRAR ALERTAS (Flash Messages) ---
-    // Busca todas las alertas de Bootstrap y las cierra a los 4 segundos
+   
     setTimeout(function() {
         var alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
