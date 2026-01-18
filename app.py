@@ -76,8 +76,9 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
         return True
         
     except Exception as e:
-        print(f"❌ Error enviando correo: {e}")
-        return False
+        error_msg = str(e)
+        print(f"❌ Error enviando correo: {error_msg}")
+        return error_msg  # Devuelve el texto del error para verlo en pantalla
 
 # --- RUTA DE INICIO ---
 @app.route('/')
@@ -1042,7 +1043,7 @@ def simular_acceso():
             
             registro = cur.fetchone()
             
-            tipo_movimiento = "" # Entrada o Salida para el correo
+            tipo_movimiento = "" 
             msg_db = ""
             proceder_con_correo = False
 
@@ -1054,7 +1055,7 @@ def simular_acceso():
                 """, (id_alumno_real, fecha_hoy, hora_actual))
                 conn.commit()
                 
-                tipo_movimiento = "Entrada" # Dato para el correo
+                tipo_movimiento = "Entrada"
                 msg_db = f"✅ Entrada registrada a las {hora_actual}."
                 proceder_con_correo = True
 
@@ -1067,7 +1068,7 @@ def simular_acceso():
                 """, (hora_actual, id_alumno_real, fecha_hoy))
                 conn.commit()
                 
-                tipo_movimiento = "Salida" # Dato para el correo
+                tipo_movimiento = "Salida"
                 msg_db = f"👋 Salida registrada a las {hora_actual}."
                 proceder_con_correo = True
                 
@@ -1075,16 +1076,18 @@ def simular_acceso():
                 msg_db = "⚠️ El alumno ya cerró su jornada (tiene entrada y salida)."
                 proceder_con_correo = False
 
-            # ENVIAR CORREO (Pasando el tipo_movimiento)
+            # --- AQUI ESTA EL CAMBIO IMPORTANTE ---
             if proceder_con_correo:
                 if email_apo:
-                    # 'Tipo_movimiento Ingeso Salida'
-                    exito = enviar_notificacion_acceso(nombre_alum, rut_alumno_input, email_apo, tipo_movimiento)
+                    # Guardamos el resultado en una variable
+                    resultado_envio = enviar_notificacion_acceso(nombre_alum, rut_alumno_input, email_apo, tipo_movimiento)
                     
-                    if exito:
+                    # Si devuelve True, todo salió bien
+                    if resultado_envio is True:
                         flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Notificación enviada a {nombre_apo_str})", "success")
                     else:
-                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Falló envío de correo)", "warning")
+                        # Si devuelve otra cosa, es el TEXTO DEL ERROR. Lo mostramos en pantalla.
+                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} (ERROR CORREO: {resultado_envio})", "warning")
                 else:
                     flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Apoderado sin correo)", "warning")
             else:
