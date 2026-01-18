@@ -66,8 +66,12 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
         msg['From'] = f"SGFSE Notificaciones <{SMTP_EMAIL}>"
         msg['To'] = email_apoderado
 
-        server = smtplib.SMTP('smtp.gmail.com', 465)
-        #server.starttls()
+        # --- CORRECCIÓN CLAVE AQUÍ ---
+        # Usamos SMTP_SSL para el puerto 465
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        
+        # server.starttls()  <-- ESTO SE QUEDA COMENTADO (No sirve con SSL)
+        
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -78,7 +82,7 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
     except Exception as e:
         error_msg = str(e)
         print(f"❌ Error enviando correo: {error_msg}")
-        return error_msg  # Devuelve el texto del error para verlo en pantalla
+        return error_msg  # Devuelve el texto del error
 
 # --- RUTA DE INICIO ---
 @app.route('/')
