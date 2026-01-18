@@ -66,8 +66,8 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
         msg['From'] = f"SGFSE Notificaciones <{SMTP_EMAIL}>"
         msg['To'] = email_apoderado
 
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
+        server = smtplib.SMTP('smtp.gmail.com', 465)
+        #server.starttls()
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
