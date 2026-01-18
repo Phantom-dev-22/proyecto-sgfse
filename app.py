@@ -1148,6 +1148,34 @@ def poblar_datos_iniciales():
         return f"Error: {str(e)}"
 '''
 
+# --- RUTA DE REPARACIÓN DE ROLES (SOLO EJECUTAR UNA VEZ) ---
+@app.route('/crear_roles_faltantes')
+def crear_roles_faltantes():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Intentamos insertar los 3 roles básicos.
+        # El "ON CONFLICT DO NOTHING" evita error si ya existen.
+        roles_sql = """
+            INSERT INTO "Roles" (id_rol, nombre_rol) 
+            VALUES 
+                (1, 'Administrador'),
+                (2, 'Apoderado'),
+                (3, 'Alumno')
+            ON CONFLICT (id_rol) DO NOTHING;
+        """
+        
+        cur.execute(roles_sql)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return "<h1>✅ ¡Roles creados con éxito!</h1><p>Ahora existen: Admin(1), Apoderado(2) y Alumno(3). <br>Ya puedes volver atrás e intentar Matricular.</p>"
+        
+    except Exception as e:
+        return f"<h1>❌ Error:</h1> <p>{str(e)}</p>"
+
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get("PORT", 5000))

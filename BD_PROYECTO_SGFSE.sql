@@ -1,0 +1,1 @@
+SELECT * FROM asistencia_sgfse."Solicitud_Ayuda";
