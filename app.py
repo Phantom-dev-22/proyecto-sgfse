@@ -14,30 +14,37 @@ from xhtml2pdf import pisa
 from reportlab.pdfgen import canvas 
 from reportlab.lib.pagesizes import letter
 
+# --- CARGAR VARIABLES DE ENTORNO  ---
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
-app.secret_key = "tesis_mauricio_secret_key" 
+app.secret_key = os.getenv('SECRET_KEY', "clave_secreta_por_defecto_si_falla_env")
 bcrypt = Bcrypt(app) 
 
-# --- CONFIGURACIÓN DE CORREO ---
-SMTP_EMAIL = "mauricio.manriquez.cordero@gmail.com"  
-SMTP_PASSWORD = "bpaptrwigcdrxjye" 
+# --- CONFIGURACIÓN DE CORREO (Desde .env) ---
+SMTP_EMAIL = os.getenv('SMTP_EMAIL')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
 # --- FUNCIONES AUXILIARES ---
 def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo="Ingreso"):
     """
-    Envía un correo al apoderado avisando el tipo de movimiento (Ingreso o Salida).
+    Envía un correo al apoderado notificando el movimiento.
+    Configuración estándar SMTP (Puerto 587) para LOCAL.
     """
     try:
+        if not SMTP_EMAIL or not SMTP_PASSWORD:
+            return "Faltan credenciales de correo en .env"
+
         hora_actual = datetime.now().strftime("%d/%m/%Y a las %H:%M hrs")
         
-        # 1. El Asunto cambia dinámicamente
+        # 1. El Asunto y Color cambian dinámicamente
         subject = f"🔔 SGFSE: {tipo} Registrado/a - {nombre_alumno}"
+        color_borde = "#dc3545" if "Salida" in tipo else "#198754" # Rojo o Verde
         
-        # 2. Elegimos color: Verde para Entrada/Ingreso, Rojo para Salida
-        color_borde = "#dc3545" if "Salida" in tipo else "#198754"
-        
+        # 2. Construcción del Mensaje HTML
         body = f"""
         <html>
             <body style="font-family: Arial, sans-serif; color: #333;">
@@ -54,7 +61,7 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
                     
                     <hr style="border: 0; border-top: 1px solid #eee;">
                     <p style="font-size: 12px; color: gray;">
-                        Este es un mensaje automático generado por SGFSE. Por favor no responder a este correo.
+                        Este es un mensaje automático generado por SGFSE.
                     </p>
                 </div>
             </body>
@@ -66,12 +73,9 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
         msg['From'] = f"SGFSE Notificaciones <{SMTP_EMAIL}>"
         msg['To'] = email_apoderado
 
-        # --- CORRECCIÓN CLAVE AQUÍ ---
-        # Usamos SMTP_SSL para el puerto 465
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        
-        # server.starttls()  <-- ESTO SE QUEDA COMENTADO (No sirve con SSL)
-        
+        # 3. Conexión al Servidor (Estándar Universal para Local)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()  # Encriptación TLS
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -82,7 +86,7 @@ def enviar_notificacion_acceso(nombre_alumno, rut_alumno, email_apoderado, tipo=
     except Exception as e:
         error_msg = str(e)
         print(f"❌ Error enviando correo: {error_msg}")
-        return error_msg  # Devuelve el texto del error
+        return error_msg
 
 # --- RUTA DE INICIO ---
 @app.route('/')
@@ -176,7 +180,7 @@ def recuperar_clave():
         
     return render_template('recuperar.html')
 
-# --- CAMBIAR CONTRASEÑA (AUTOGESTIÓN) ---
+# --- CAMBIAR CONTRASEÑA ---
 @app.route('/cambiar_clave', methods=['GET', 'POST'])
 def cambiar_clave():
     if 'user_id' not in session:
@@ -271,19 +275,6 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('home'))
-
-# --- TEST DB (Diagnóstico) ---
-@app.route('/test-db')
-def test_db():
-    conn = get_db_connection()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT version();")
-        db_version = cursor.fetchone()
-        conn.close()
-        return jsonify({"status": "success", "version": db_version[0]})
-    else:
-        return jsonify({"status": "error"}), 500
 
 # --- LISTA DE USUARIOS (CRUD) ---
 @app.route('/usuarios')
@@ -572,8 +563,8 @@ def editar_usuario(id_usuario):
     cur.close(); conn.close()
     return render_template('editar_usuario.html', user=user, usuario=user, roles=roles)
 
-# --- MATRICULAR ALUMNO ---
 
+# --- MATRICULAR ALUMNO ---
 @app.route('/matricular', methods=['GET', 'POST'])
 def matricular():
     if 'user_id' not in session or session.get('id_rol') != 1:
@@ -679,7 +670,7 @@ def seleccionar_asistencia():
     hoy = date.today()
     return render_template('asistencia_selector.html', cursos=cursos, fecha_hoy=hoy)
 
-# --- RUTA ASISTENCIA (ACTUALIZADA CON HORARIOS) ---
+# --- RUTA ASISTENCIA ---
 @app.route('/asistencia', methods=['GET', 'POST'])
 def asistencia():
     if 'user_id' not in session:
@@ -735,8 +726,7 @@ def asistencia():
             flash(f'❌ Error al guardar: {e}', 'danger')
 
     if curso_seleccionado:
-        # === AQUÍ ESTÁ EL CAMBIO CLAVE ===
-        # Agregamos hora_entrada y hora_salida al SELECT
+        # Se incorpora hora_entrada y hora_salida al SELECT
         query = """
             SELECT 
                 a.id_alumno,
@@ -1000,8 +990,7 @@ def descargar_reporte():
                      download_name=f"Asistencia_{nombre_curso}_{fecha}.pdf", 
                      mimetype='application/pdf')
 
-
-# --- SIMULADOR DE TORNIQUETE (FINAL CON CORREO DINÁMICO) ---
+# --- Simular Acceso ---
 @app.route('/simular_acceso', methods=['GET', 'POST'])
 def simular_acceso():
     if 'user_id' not in session or session.get('id_rol') != 1:
@@ -1080,18 +1069,15 @@ def simular_acceso():
                 msg_db = "⚠️ El alumno ya cerró su jornada (tiene entrada y salida)."
                 proceder_con_correo = False
 
-            # --- AQUI ESTA EL CAMBIO IMPORTANTE ---
+            # --- LÓGICA DE CORREO ---
             if proceder_con_correo:
                 if email_apo:
-                    # Guardamos el resultado en una variable
                     resultado_envio = enviar_notificacion_acceso(nombre_alum, rut_alumno_input, email_apo, tipo_movimiento)
                     
-                    # Si devuelve True, todo salió bien
                     if resultado_envio is True:
-                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Notificación enviada a {nombre_apo_str})", "success")
+                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Notificación enviada a {nombre_apo_str} ✅)", "success")
                     else:
-                        # Si devuelve otra cosa, es el TEXTO DEL ERROR. Lo mostramos en pantalla.
-                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} (ERROR CORREO: {resultado_envio})", "warning")
+                        flash(f"<b>{tipo_movimiento}:</b> {msg_db} <br><small>(Error técnico correo: {resultado_envio})</small>", "warning")
                 else:
                     flash(f"<b>{tipo_movimiento}:</b> {msg_db} (Apoderado sin correo)", "warning")
             else:
@@ -1106,64 +1092,14 @@ def simular_acceso():
 
     return render_template('simulador.html')
 
-
-# ==========================================================
-# RUTAS DE INSTALACIÓN Y CONFIGURACIÓN INICIAL
-# (Desactivadas tras el despliegue)
-# ==========================================================
-
-'''
-# --- INSTALADOR DE BASE DE DATOS ---
-@app.route('/crear-base-de-datos-nube')
-def crear_base_de_datos_nube():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # 1. Crear Esquema
-        cur.execute("CREATE SCHEMA IF NOT EXISTS asistencia_sgfse;")
-        
-        # [CÓDIGO DE CREACIÓN DE TABLAS OMITIDO POR LIMPIEZA]
-        # Consultar documentación de base de datos para estructura completa.
-
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        return "Base de datos creada exitosamente."
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-# --- POBLADOR DE DATOS INICIALES (CURSOS) ---
-@app.route('/poblar-datos-iniciales')
-def poblar_datos_iniciales():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Cargar Estados y Cursos
-        # [CÓDIGO OMITIDO]
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return "Datos cargados."
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-'''
-
-# --- RUTA DE REPARACIÓN DE ROLES (SOLO EJECUTAR UNA VEZ) ---
-@app.route('/crear_roles_faltantes')
-def crear_roles_faltantes():
+# --- RUTA DE INSTALACIÓN INICIAL (Roles + Admin por Defecto) ---
+@app.route('/instalacion_rapida')
+def instalacion_rapida():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Intentamos insertar los 3 roles básicos.
-        # El "ON CONFLICT DO NOTHING" evita error si ya existen.
+        # 1. CREAR ROLES (Si no existen)
         roles_sql = """
             INSERT INTO "Roles" (id_rol, nombre_rol) 
             VALUES 
@@ -1172,18 +1108,61 @@ def crear_roles_faltantes():
                 (3, 'Alumno')
             ON CONFLICT (id_rol) DO NOTHING;
         """
-        
         cur.execute(roles_sql)
+        
+        # 2. CREAR USUARIO ADMIN ESPECÍFICO
+        rut_admin = '12.345.678-9'
+        clave_admin_texto = 'Proyecto123*'
+        
+        # Verificamos si ya existe para no duplicarlo
+        cur.execute('SELECT id_usuario FROM "Usuarios" WHERE rut = %s', (rut_admin,))
+        existe = cur.fetchone()
+        
+        mensaje = ""
+        
+        if not existe:
+            # Generamos el Hash de la contraseña
+            pass_hash = generate_password_hash(clave_admin_texto)
+            
+            # Insertamos Usuario
+            cur.execute("""
+                INSERT INTO "Usuarios" (rut, password_hash, id_rol)
+                VALUES (%s, %s, 1) RETURNING id_usuario
+            """, (rut_admin, pass_hash))
+            
+            id_nuevo_admin = cur.fetchone()[0]
+            
+            # Insertamos Perfil
+            cur.execute("""
+                INSERT INTO "Perfiles" (id_usuario, nombre, apellido_paterno, apellido_materno)
+                VALUES (%s, 'Administrador', 'Principal', 'SGFSE')
+            """, (id_nuevo_admin,))
+            
+            mensaje = f"""
+                <h1 style='color:green'>✅ ¡Instalación Exitosa!</h1>
+                <ul>
+                    <li>Roles (1,2,3) verificados.</li>
+                    <li>Usuario Administrador Creado.</li>
+                </ul>
+                <p><strong>RUT:</strong> {rut_admin}<br>
+                <strong>Clave:</strong> {clave_admin_texto}</p>
+            """
+        else:
+            mensaje = f"""
+                <h1 style='color:orange'>⚠️ Aviso</h1>
+                <p>Los roles y el usuario <strong>{rut_admin}</strong> ya existían en la base de datos.</p>
+            """
+
         conn.commit()
         cur.close()
         conn.close()
-        return "<h1>✅ ¡Roles creados con éxito!</h1><p>Ahora existen: Admin(1), Apoderado(2) y Alumno(3). <br>Ya puedes volver atrás e intentar Matricular.</p>"
+        
+        return f"{mensaje} <br> <a href='/login'><button>Ir al Login</button></a>"
         
     except Exception as e:
-        return f"<h1>❌ Error:</h1> <p>{str(e)}</p>"
+        return f"<h1 style='color:red'>❌ Error Crítico:</h1> <p>{str(e)}</p>"
 
 
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # EJECUCIÓN LOCAL 
+    app.run(host='0.0.0.0', port=5000, debug=True)
